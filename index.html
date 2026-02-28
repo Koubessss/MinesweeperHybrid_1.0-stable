@@ -631,6 +631,21 @@
       gap: 8px;
     }
 
+    #popupBackdrop.hac-popup #popupCard {
+      background: linear-gradient(180deg, #4a1515, #2a0a0a);
+      border: 2px solid #c03030;
+      box-shadow: 0 0 24px rgba(200, 48, 48, 0.4);
+    }
+
+    #popupBackdrop.hac-popup #popupTitle {
+      color: #ff6060;
+      text-shadow: 0 0 8px rgba(255, 96, 96, 0.5);
+    }
+
+    #popupBackdrop.hac-popup #popupBody {
+      color: #e8a0a0;
+    }
+
     #toastStack {
       position: fixed;
       right: 12px;
@@ -853,6 +868,7 @@
             <h3>Controls</h3>
             <div class="row">
               <button class="btn slim" data-game-action="hint">Hint</button>
+              <button class="btn slim" data-game-action="undo" id="undoBtn">Undo</button>
               <button class="btn slim" data-game-action="swap-reality" id="swapRealityBtn">Swap Reality</button>
               <button class="btn slim" data-game-action="stabilizer" id="stabilizerBtn">Quantum Stabilizer</button>
             </div>
@@ -995,6 +1011,7 @@
       const GRAPHICS = ["LOW", "MED", "HIGH"];
       const DISPLAY_MODES = ["WINDOWED", "FULLSCREEN", "BORDERLESS"];
       const FPS_LIMITS = [30, 60, 120, 144, 240, 0];
+      const HAPTIC_INTENSITIES = ["OFF", "LIGHT", "MEDIUM", "STRONG"];
 
       const MUSIC_TRACKS = [
         "Title Theme",
@@ -1015,7 +1032,16 @@
       const BATTLEPASS_SEASON_NAME = "RIFT ERA";
 
       const STORAGE_KEY = "minesweeper_plus_web_phase2";
+      const APP_VERSION = "1.1";
+      const VERSION_SEEN_KEY = "minesweeper_plus_web_phase2_seen_version";
+      const HAC_WARNINGS_KEY = "minesweeper_hac_warnings";
+      const HAC_COOLDOWN_KEY = "minesweeper_hac_cooldown";
+      const HAC_COOLDOWN_MS = 5 * 60 * 1000;
+      const INTEGRITY_SALT = "msp2_v1_x7k9";
       const MAX_CELL_COUNT = 450000;
+      const UNDO_MAX_CHARGES = 3;
+      const INPUT_TIMING_THRESHOLD_MS = 80;
+      const MISS_CLICK_CORRECTION_WINDOW_MS = 350;
       const CUSTOM_MIN_SIZE = 6;
       const CUSTOM_MAX_SIZE = 9000;
       const CUSTOM_MAX_MINES = 16200000;
@@ -1145,6 +1171,7 @@
         sideAchievements: document.getElementById("sideAchievements"),
         swapRealityBtn: document.getElementById("swapRealityBtn"),
         stabilizerBtn: document.getElementById("stabilizerBtn"),
+        undoBtn: document.getElementById("undoBtn"),
         mobileHudToggle: document.getElementById("mobileHudToggle"),
         touchModeBtn: document.getElementById("touchModeBtn"),
         mobileControls: document.getElementById("mobileControls"),
@@ -1193,6 +1220,7 @@
           mute_on_minimize: true,
           unreal_warning_skip: false,
           touch_flag_mode: false,
+          haptic_intensity: "MEDIUM",
           achievements: {},
           stats: {},
           battlepass: {
@@ -1253,6 +1281,27 @@
         return out;
       }
 
+      function computeIntegrityHash(obj) {
+        const critical = {
+          wins: obj.runtime?.wins ?? 0,
+          games: obj.runtime?.games_played ?? 0,
+          losses: obj.runtime?.losses ?? 0,
+          flags: obj.runtime?.flags_placed ?? 0,
+          marks: obj.runtime?.marks_placed ?? 0,
+          xp: obj.settings?.battlepass?.xp ?? 0,
+          level: obj.settings?.battlepass?.level ?? 1,
+          ach: JSON.stringify(obj.settings?.achievements ?? {})
+        };
+        const str = JSON.stringify(critical) + INTEGRITY_SALT;
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < str.length; i += 1) {
+          h ^= str.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return (h >>> 0).toString(36);
+      }
+
+      let integrityFailedOnLoad = false;
       function loadData() {
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
@@ -1260,7 +1309,15 @@
             return cloneData(DEFAULT_DATA);
           }
           const parsed = JSON.parse(raw);
-          return mergeObjects(DEFAULT_DATA, parsed);
+          const storedHash = parsed._integrity;
+          delete parsed._integrity;
+          const merged = mergeObjects(DEFAULT_DATA, parsed);
+          const computedHash = computeIntegrityHash(merged);
+          if (storedHash && storedHash !== computedHash) {
+            integrityFailedOnLoad = true;
+            return cloneData(DEFAULT_DATA);
+          }
+          return merged;
         } catch {
           return cloneData(DEFAULT_DATA);
         }
@@ -1269,7 +1326,54 @@
       const data = loadData();
 
       function saveData() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        const toSave = cloneData(data);
+        toSave._integrity = computeIntegrityHash(data);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      }
+
+      let hacLastCheck = 0;
+      function isHacCooldownActive() {
+        const until = parseInt(sessionStorage.getItem(HAC_COOLDOWN_KEY) || "0", 10);
+        return until > Date.now();
+      }
+
+      function getHacCooldownRemaining() {
+        const until = parseInt(sessionStorage.getItem(HAC_COOLDOWN_KEY) || "0", 10);
+        return Math.max(0, Math.ceil((until - Date.now()) / 1000));
+      }
+
+      function checkHac(reasonOverride) {
+        if (reasonOverride) {
+          openHacPopup(reasonOverride);
+          return;
+        }
+        const now = nowMs();
+        if (now - hacLastCheck < 2000) {
+          return;
+        }
+        hacLastCheck = now;
+
+        if (window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160) {
+          openHacPopup("DEVTOOLS");
+          return;
+        }
+
+        const rt = data.runtime || {};
+        const wins = rt.wins || 0;
+        const games = rt.games_played || 0;
+        if (games > 0 && wins > games) {
+          openHacPopup("STATS_TAMPER");
+          return;
+        }
+
+        if (app.state === "GAME" && game.gameOver && game.won && game.generated) {
+          const cells = game.rows * game.cols;
+          const elapsedSec = game.elapsedMs / 1000;
+          if (cells > 400 && elapsedSec < 2) {
+            openHacPopup("IMPOSSIBLE_FAST");
+            return;
+          }
+        }
       }
 
       const app = {
@@ -1353,6 +1457,14 @@
         },
         lastTapAt: 0,
         lastTapIndex: -1,
+        pinch: {
+          active: false,
+          startDist: 0,
+          startZoom: 0,
+          centerX: 0,
+          centerY: 0
+        },
+        activePointers: {},
         mineA: null,
         mineB: null,
         numbersA: null,
@@ -1373,7 +1485,14 @@
         renderQueued: false,
         keys: {
           space: false
-        }
+        },
+        undoStack: [],
+        undoCharges: UNDO_MAX_CHARGES,
+        lastActionAt: 0,
+        recentActionTimestamps: [],
+        lastFlagIndex: -1,
+        lastFlagAt: 0,
+        correctionCount: 0
       };
 
       function clamp(v, lo, hi) {
@@ -1700,6 +1819,7 @@
       }
 
       function openPopup(title, body, actions) {
+        dom.popupBackdrop.classList.remove("hac-popup");
         dom.popupTitle.textContent = title;
         dom.popupBody.textContent = body;
         dom.popupActions.innerHTML = "";
@@ -1717,7 +1837,47 @@
         dom.popupBackdrop.classList.remove("hidden");
       }
 
+      const HAC_REASONS = {
+        DEVTOOLS: { msg: "developer tools open", action: "Close DevTools and come back." },
+        STATS_TAMPER: { msg: "stats or progression tampering", action: "Your progress has been reset." },
+        IMPOSSIBLE_FAST: { msg: "impossibly fast completion", action: "This run has been invalidated." },
+        INPUT_TIMING: { msg: "suspicious input timing (possible automation)", action: "Play at a natural pace." },
+        MISS_CLICK_ABUSE: { msg: "excessive correction patterns", action: "Avoid rapid flag/unflag cycles." },
+        IMPOSSIBLE_ACTION: { msg: "impossible game action", action: "This action has been rejected." },
+        INTEGRITY: { msg: "data integrity violation", action: "Your progress has been reset." }
+      };
+
+      function openHacPopup(reasonKey = "DEVTOOLS") {
+        const reason = HAC_REASONS[reasonKey] || HAC_REASONS.DEVTOOLS;
+        const warnings = parseInt(sessionStorage.getItem(HAC_WARNINGS_KEY) || "0", 10) + 1;
+        sessionStorage.setItem(HAC_WARNINGS_KEY, String(warnings));
+
+        dom.popupBackdrop.classList.add("hac-popup");
+        dom.popupTitle.textContent = "HAC (Hybrid AntiCheat)";
+        dom.popupBody.textContent = `HAC has detected ${reason.msg}.\n\n${reason.action}\n\nWarning ${warnings}/3.`;
+        dom.popupActions.innerHTML = "";
+        const btn = document.createElement("button");
+        btn.className = "btn primary";
+        btn.textContent = "OK";
+        btn.addEventListener("click", () => {
+          dom.popupBackdrop.classList.remove("hac-popup");
+          dom.popupBackdrop.classList.add("hidden");
+          if (warnings >= 3) {
+            sessionStorage.setItem(HAC_COOLDOWN_KEY, String(Date.now() + HAC_COOLDOWN_MS));
+            sessionStorage.setItem(HAC_WARNINGS_KEY, "0");
+            if (app.state === "GAME") {
+              stopGameTimer();
+              setState("MENU");
+            }
+            pushToast("HAC: 5 minute cooldown. Return to menu.", "bad", 5000);
+          }
+        });
+        dom.popupActions.appendChild(btn);
+        dom.popupBackdrop.classList.remove("hidden");
+      }
+
       function closePopup() {
+        dom.popupBackdrop.classList.remove("hac-popup");
         dom.popupBackdrop.classList.add("hidden");
       }
 
@@ -1792,8 +1952,14 @@
       }
 
       function vibrateTap(duration = 10) {
+        const intensity = data.settings.haptic_intensity || "MEDIUM";
+        if (intensity === "OFF") {
+          return;
+        }
+        const mult = { LIGHT: 0.4, MEDIUM: 1, STRONG: 1.6 }[intensity] || 1;
+        const d = Math.round(clamp(duration * mult, 1, 100));
         if (typeof navigator.vibrate === "function") {
-          navigator.vibrate(duration);
+          navigator.vibrate(d);
         }
       }
 
@@ -1932,6 +2098,10 @@
 
         dom.swapRealityBtn.disabled = !game.dualReality;
         dom.stabilizerBtn.disabled = !game.quantumMode || game.quantumStabilizerUsed;
+        if (dom.undoBtn) {
+          dom.undoBtn.disabled = game.undoStack.length === 0;
+          dom.undoBtn.textContent = game.undoStack.length > 0 ? `Undo (${game.undoStack.length})` : "Undo";
+        }
 
         if (!game.sideRecent.length) {
           dom.sideAchievements.innerHTML = "<span style=\"color:var(--subtle);\">No recent unlocks.</span>";
@@ -2218,6 +2388,7 @@
               ${menuBtn(`Fast Anim: ${data.settings.fast_anim ? "ON" : "OFF"}`, "toggle-setting", "fast_anim")}
               ${menuBtn(`Quick Restart: ${data.settings.quick_restart ? "ON" : "OFF"}`, "toggle-setting", "quick_restart")}
               ${menuBtn(`Mute On Minimize: ${data.settings.mute_on_minimize ? "ON" : "OFF"}`, "toggle-setting", "mute_on_minimize")}
+              ${menuBtn(`Haptic: ${data.settings.haptic_intensity || "MEDIUM"}`, "cycle-setting", "haptic_intensity")}
             </div>
             <label class="field">Seed
               <input type="text" maxlength="120" data-input="seed" value="${data.settings.seed || ""}" />
@@ -2591,6 +2762,11 @@
       }
 
       function startLoading(setup) {
+        if (isHacCooldownActive()) {
+          const sec = getHacCooldownRemaining();
+          openPopup("HAC Cooldown", `You cannot start a new game for ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")} remaining.`, [{ label: "OK", className: "primary", onClick: closePopup }]);
+          return;
+        }
         app.pendingSetup = setup;
         app.loading = {
           startedAt: nowMs(),
@@ -2913,6 +3089,8 @@
             saveData();
           } else if (key === "language") {
             cycleSetting("language", LANGUAGES);
+          } else if (key === "haptic_intensity") {
+            cycleSetting("haptic_intensity", HAPTIC_INTENSITIES);
           } else if (key === "resolution") {
             const resolutions = ["800x600", "1024x768", "1280x720", "1366x768", "1600x900", "1920x1080"];
             cycleSetting("resolution", resolutions);
@@ -3170,6 +3348,7 @@
             endGame(false, "Time limit reached.");
             return;
           }
+          checkHac();
           syncSidebarInfo();
           requestRender();
         }, 120);
@@ -3559,6 +3738,13 @@
         game.flagCount = 0;
         game.revealedSafeCount = 0;
         game.revealedMineCount = 0;
+        game.undoStack = [];
+        game.undoCharges = UNDO_MAX_CHARGES;
+        game.lastActionAt = 0;
+        game.recentActionTimestamps = [];
+        game.lastFlagIndex = -1;
+        game.lastFlagAt = 0;
+        game.correctionCount = 0;
 
         initBoardArrays();
 
@@ -3715,7 +3901,68 @@
         }
       }
 
-      function chordReveal(index) {
+      function pushUndoState() {
+        if (game.gameOver || game.paused || game.undoCharges <= 0 || !game.generated) {
+          return;
+        }
+        const len = game.revealed.length;
+        game.undoStack.push({
+          revealed: new Uint8Array(game.revealed),
+          flagged: new Uint8Array(game.flagged),
+          marked: new Uint8Array(game.marked),
+          revealedSafeCount: game.revealedSafeCount,
+          revealedMineCount: game.revealedMineCount,
+          score: game.score,
+          combo: game.combo,
+          flagCount: game.flagCount
+        });
+        game.undoCharges -= 1;
+      }
+
+      function performUndo() {
+        if (game.gameOver || game.paused || game.undoStack.length === 0) {
+          return;
+        }
+        const state = game.undoStack.pop();
+        game.undoCharges += 1;
+        for (let i = 0; i < game.revealed.length; i += 1) {
+          game.revealed[i] = state.revealed[i];
+          game.flagged[i] = state.flagged[i];
+          game.marked[i] = state.marked[i];
+        }
+        game.revealedSafeCount = state.revealedSafeCount;
+        game.revealedMineCount = state.revealedMineCount;
+        game.score = state.score;
+        game.combo = state.combo;
+        game.flagCount = state.flagCount;
+        syncSidebarInfo();
+        requestRender();
+      }
+
+      function recordActionTimestamp() {
+        const now = nowMs();
+        game.lastActionAt = now;
+        game.recentActionTimestamps.push(now);
+        while (game.recentActionTimestamps.length > 20) {
+          game.recentActionTimestamps.shift();
+        }
+      }
+
+      function checkInputTiming() {
+        if (game.recentActionTimestamps.length < 5) {
+          return false;
+        }
+        let fastCount = 0;
+        for (let i = 1; i < game.recentActionTimestamps.length; i += 1) {
+          const delta = game.recentActionTimestamps[i] - game.recentActionTimestamps[i - 1];
+          if (delta < INPUT_TIMING_THRESHOLD_MS) {
+            fastCount += 1;
+          }
+        }
+        return fastCount >= 4;
+      }
+
+      function chordReveal(index, fromAutoChord = false) {
         if (game.dualReality || modeHas("NO FLAGS")) {
           return;
         }
@@ -3736,9 +3983,12 @@
         if (flags !== n) {
           return;
         }
+        if (!fromAutoChord) {
+          pushUndoState();
+        }
         for (const j of adj) {
           if (!game.flagged[j] && !game.revealed[j]) {
-            revealIndex(j, false);
+            revealIndex(j, false, true);
           }
         }
       }
@@ -3775,7 +4025,7 @@
         }
       }
 
-      function revealIndex(index, applyMirror = true) {
+      function revealIndex(index, applyMirror = true, skipUndo = false) {
         if (game.gameOver || game.paused) {
           return;
         }
@@ -3797,6 +4047,15 @@
           chordReveal(index);
           requestRender();
           return;
+        }
+
+        recordActionTimestamp();
+        if (checkInputTiming()) {
+          checkHac("INPUT_TIMING");
+          return;
+        }
+        if (!skipUndo) {
+          pushUndoState();
         }
 
         const mineMask = currentMineMask();
@@ -3869,7 +4128,7 @@
         if (applyMirror && modeHas("DUALITY")) {
           const m = mirrorIndex(index);
           if (m !== index) {
-            revealIndex(m, false);
+            revealIndex(m, false, true);
           }
         }
 
@@ -3903,6 +4162,26 @@
           chordReveal(index);
           requestRender();
           return;
+        }
+
+        recordActionTimestamp();
+        if (checkInputTiming()) {
+          checkHac("INPUT_TIMING");
+          return;
+        }
+        const now = nowMs();
+        if (game.lastFlagIndex === index && (now - game.lastFlagAt) < MISS_CLICK_CORRECTION_WINDOW_MS && game.undoStack.length > 0) {
+          performUndo();
+          game.lastFlagIndex = -1;
+          game.lastFlagAt = 0;
+          game.correctionCount = 0;
+          pushToast("Miss-click detected. Last action automatically undone.", "good", 1500);
+          return;
+        }
+        game.lastFlagIndex = index;
+        game.lastFlagAt = now;
+        if (!modeHas("NO FLAGS")) {
+          pushUndoState();
         }
 
         if (modeHas("NO FLAGS")) {
@@ -3941,7 +4220,7 @@
         if (data.settings.auto_chord && !game.dualReality && !modeHas("NO FLAGS") && !modeHas("HARDCORE")) {
           for (const j of getAdjacentIndices(index)) {
             if (game.revealed[j]) {
-              chordReveal(j);
+              chordReveal(j, true);
             }
           }
         }
@@ -4012,6 +4291,7 @@
         };
         evaluateAchievements(context);
 
+        checkHac();
         saveData();
         syncSidebarInfo();
         requestRender();
@@ -4067,13 +4347,20 @@
         if (!game.rows || !game.cols) {
           return;
         }
-        startLoading({
+        const setup = {
           rows: game.rows,
           cols: game.cols,
           mines: game.mines,
           difficulty: game.difficulty,
           custom: game.difficulty === "CUSTOM"
-        });
+        };
+        if (app.state === "GAME" && game.generated) {
+          setupGame(setup);
+          setState("GAME");
+          setPillStatus("RUNNING", "good");
+        } else {
+          startLoading(setup);
+        }
       }
 
       function drawMine(x, y, tile, colorMain, colorCore) {
@@ -4784,6 +5071,10 @@
           useHint();
           return;
         }
+        if (action === "undo") {
+          performUndo();
+          return;
+        }
         if (action === "swap-reality") {
           swapDualReality();
           return;
@@ -4862,17 +5153,31 @@
         }
 
         if (event.pointerType === "touch") {
-          game.pointer.active = true;
-          game.pointer.id = event.pointerId;
-          game.pointer.mode = "touch";
-          game.pointer.startX = event.clientX;
-          game.pointer.startY = event.clientY;
-          game.pointer.lastX = event.clientX;
-          game.pointer.lastY = event.clientY;
-          game.pointer.downAt = nowMs();
-          game.pointer.moved = false;
-          const cell = getBoardCellFromCanvasPoint(event.clientX, event.clientY);
-          game.pointer.downIndex = cell ? cell.index : -1;
+          game.activePointers[event.pointerId] = { clientX: event.clientX, clientY: event.clientY };
+          const touchIds = Object.keys(game.activePointers).map(Number);
+          if (touchIds.length >= 2) {
+            game.pinch.active = true;
+            const [a, b] = touchIds.slice(0, 2);
+            const pa = game.activePointers[a];
+            const pb = game.activePointers[b];
+            game.pinch.startDist = Math.hypot(pb.clientX - pa.clientX, pb.clientY - pa.clientY) || 1;
+            game.pinch.startZoom = clamp(safeFloat(data.settings.zoom, 1), 0.25, 2.4);
+            game.pinch.centerX = (pa.clientX + pb.clientX) / 2;
+            game.pinch.centerY = (pa.clientY + pb.clientY) / 2;
+            game.pointer.active = false;
+          } else {
+            game.pointer.active = true;
+            game.pointer.id = event.pointerId;
+            game.pointer.mode = "touch";
+            game.pointer.startX = event.clientX;
+            game.pointer.startY = event.clientY;
+            game.pointer.lastX = event.clientX;
+            game.pointer.lastY = event.clientY;
+            game.pointer.downAt = nowMs();
+            game.pointer.moved = false;
+            const cell = getBoardCellFromCanvasPoint(event.clientX, event.clientY);
+            game.pointer.downIndex = cell ? cell.index : -1;
+          }
           dom.canvas.setPointerCapture(event.pointerId);
           return;
         }
@@ -4894,6 +5199,37 @@
 
       function pointerMove(event) {
         if (app.state !== "GAME") {
+          return;
+        }
+
+        if (game.activePointers[event.pointerId] !== undefined) {
+          game.activePointers[event.pointerId] = { clientX: event.clientX, clientY: event.clientY };
+        }
+
+        if (game.pinch.active) {
+          const touchIds = Object.keys(game.activePointers).map(Number);
+          if (touchIds.length >= 2) {
+            const [a, b] = touchIds.slice(0, 2);
+            const pa = game.activePointers[a];
+            const pb = game.activePointers[b];
+            if (pa && pb) {
+              const dist = Math.hypot(pb.clientX - pa.clientX, pb.clientY - pa.clientY) || 1;
+              const ratio = dist / game.pinch.startDist;
+              const nextZoom = clamp(game.pinch.startZoom * ratio, 0.25, 2.4);
+              const rect = dom.canvas.getBoundingClientRect();
+              const centerX = (pa.clientX + pb.clientX) / 2 - rect.left;
+              const centerY = (pa.clientY + pb.clientY) / 2 - rect.top;
+              const oldTile = getTilePx();
+              data.settings.zoom = nextZoom;
+              const newTile = getTilePx();
+              const boardX = (game.cameraX + centerX) / oldTile;
+              const boardY = (game.cameraY + centerY) / oldTile;
+              game.cameraX = boardX * newTile - centerX;
+              game.cameraY = boardY * newTile - centerY;
+              clampCamera();
+              requestRender();
+            }
+          }
           return;
         }
 
@@ -4928,6 +5264,16 @@
           return;
         }
 
+        delete game.activePointers[event.pointerId];
+        const touchCount = Object.keys(game.activePointers).length;
+        if (game.pinch.active) {
+          game.pinch.active = touchCount >= 2;
+          if (!game.pinch.active) {
+            saveData();
+          }
+          return;
+        }
+
         if (!game.pointer.active || game.pointer.id !== event.pointerId) {
           return;
         }
@@ -4945,7 +5291,7 @@
 
           if (isDouble) {
             chordReveal(cell.index);
-          } else if (heldMs >= 380) {
+          } else if (heldMs >= 100) {
             toggleFlagIndex(cell.index, true);
           } else if (data.settings.touch_flag_mode) {
             toggleFlagIndex(cell.index, true);
@@ -5186,6 +5532,17 @@
             setState("MENU");
             setPillStatus("READY", "info");
             updateHeaderBoardInfo();
+            const seen = localStorage.getItem(VERSION_SEEN_KEY) || "0";
+            if (integrityFailedOnLoad) {
+              openHacPopup("INTEGRITY");
+              integrityFailedOnLoad = false;
+            } else if (seen !== APP_VERSION) {
+              openPopup(
+                `Update ${APP_VERSION}`,
+                "Added: Quick restart (instant same-board restart), Pinch-to-zoom on mobile, Faster long-press to flag (100ms), Haptic intensity setting (Settings → Gameplay), HAC (Hybrid AntiCheat) with unusual activity detection.",
+                [{ label: "OK", className: "primary", onClick: () => { localStorage.setItem(VERSION_SEEN_KEY, APP_VERSION); closePopup(); } }]
+              );
+            }
             return;
           }
           requestAnimationFrame(loop);
