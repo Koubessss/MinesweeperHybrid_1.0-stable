@@ -683,6 +683,28 @@
       background: color-mix(in srgb, var(--warning) 24%, var(--panel-strong));
     }
 
+    /* Debug rainbow text */
+    .dbg-text {
+      background: linear-gradient(90deg, #ff005a, #ff7a00, #ffdd00, #00c853, #00b0ff, #651fff, #d500f9);
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      display: inline-block;
+      animation: dbgRainbow 2.6s linear infinite, dbgPulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes dbgRainbow {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    @keyframes dbgPulse {
+      0% { opacity: 0.9; }
+      50% { opacity: 1; }
+      100% { opacity: 0.9; }
+    }
+
     @keyframes toastIn {
       to {
         opacity: 1;
@@ -838,6 +860,7 @@
         <span id="pillState" class="pill">STATE: LOADING</span>
         <span id="pillBoard" class="pill">0x0 | 0 mines</span>
         <span id="pillMode" class="pill">MODE: CLASSIC</span>
+        <span id="pillDebug" class="pill hidden"><span class="dbg-text">DEBUG</span></span>
       </div>
     </header>
 
@@ -1174,6 +1197,7 @@
         sideHints: document.getElementById("sideHints"),
         sideXpGain: document.getElementById("sideXpGain"),
         sideAchievements: document.getElementById("sideAchievements"),
+        pillDebug: document.getElementById("pillDebug"),
         swapRealityBtn: document.getElementById("swapRealityBtn"),
         stabilizerBtn: document.getElementById("stabilizerBtn"),
         undoBtn: document.getElementById("undoBtn"),
@@ -1189,6 +1213,9 @@
         canvasWrap: document.getElementById("canvasWrap"),
         canvas: document.getElementById("boardCanvas")
       };
+
+      // pressed keys set for shortcut detection
+      const pressedKeys = new Set();
 
       const ctx = dom.canvas.getContext("2d", { alpha: false });
 
@@ -1407,7 +1434,8 @@
         isMobileUi: false,
         mobileHudOpen: false,
         bootStart: performance.now(),
-        bootDone: false
+        bootDone: false,
+        debugMode: false
       };
 
       const game = {
@@ -1854,6 +1882,10 @@
       };
 
       function openHacPopup(reasonKey = "DEVTOOLS") {
+        if (app.debugMode) {
+          console.info(`openHacPopup suppressed in debug mode: ${reasonKey}`);
+          return;
+        }
         const reason = HAC_REASONS[reasonKey] || HAC_REASONS.DEVTOOLS;
         const warnings = parseInt(sessionStorage.getItem(HAC_WARNINGS_KEY) || "0", 10) + 1;
         sessionStorage.setItem(HAC_WARNINGS_KEY, String(warnings));
@@ -1920,6 +1952,10 @@
       }
 
       function incrHac(reasonKey = "UNKNOWN", weight = 1) {
+        if (app.debugMode) {
+          console.info(`HAC disabled (debug mode) - signal: ${reasonKey}`);
+          return;
+        }
         decayHacScore();
         hacScore = Math.min(100, hacScore + weight);
         console.warn(`HAC signal: ${reasonKey} (score=${hacScore})`);
@@ -1941,6 +1977,20 @@
         } else {
           // soft warn via toast
           pushToast(`Suspicious activity: ${reasonKey}`, "warn", 1800);
+        }
+      }
+
+      function setDebugMode(enabled) {
+        app.debugMode = Boolean(enabled);
+        if (dom.pillDebug) {
+          dom.pillDebug.classList.toggle('hidden', !app.debugMode);
+        }
+        if (app.debugMode) {
+          pushToast('Debug mode enabled: HAC/XP/Achievements disabled', 'info', 3000);
+          console.info('Debug mode enabled');
+        } else {
+          pushToast('Debug mode disabled', 'good', 1600);
+          console.info('Debug mode disabled');
         }
       }
 
@@ -3699,6 +3749,10 @@
       }
 
       function addXp(amount, reason = "") {
+        if (app.debugMode) {
+          console.info('addXp suppressed in debug mode');
+          return;
+        }
         const bp = data.settings.battlepass;
         const boosted = Math.floor(amount * getBoostMultiplier());
         bp.xp += Math.max(0, boosted);
@@ -3714,6 +3768,10 @@
       }
 
       function unlockAchievement(ach) {
+        if (app.debugMode) {
+          console.info('unlockAchievement suppressed in debug mode', ach && ach.id);
+          return;
+        }
         if (!data.settings.achievements) {
           data.settings.achievements = {};
         }
@@ -3726,6 +3784,9 @@
       }
 
       function evaluateAchievements(context = {}) {
+        if (app.debugMode) {
+          return;
+        }
         for (const ach of ACHIEVEMENTS) {
           if (achievementUnlocked(ach.id)) {
             continue;
@@ -5426,6 +5487,23 @@
       }
 
       function handleKeyboard(event) {
+        // track pressed keys for shortcut detection
+        const _k = (event.key || '').toLowerCase();
+        if (event.type === 'keydown') {
+          pressedKeys.add(_k);
+        } else {
+          pressedKeys.delete(_k);
+        }
+
+        // Debug toggle: CTRL + D + E only in MENU
+        if (event.type === 'keydown' && app.state === 'MENU') {
+          const ctrl = event.ctrlKey || pressedKeys.has('control') || pressedKeys.has('ctrl');
+          if (ctrl && _k === 'e' && pressedKeys.has('d')) {
+            setDebugMode(!app.debugMode);
+            event.preventDefault();
+            return;
+          }
+        }
         if (event.code === "Space") {
           game.keys.space = event.type === "keydown";
           if (event.type === "keydown" && app.state === "GAME" && !game.gameOver) {
