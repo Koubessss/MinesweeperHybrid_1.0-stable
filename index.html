@@ -1,20 +1,11 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-  <title>Maintenance · Minesweeper Plus</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <title>Minesweeper Plus Hybrid</title>
   <style>
-    /* ------------------------------------------------------------
-       consistent visual language — reusing the game's panel aesthetic
-       but stripped down to a pure, static maintenance message.
-    ------------------------------------------------------------ */
-    * {
-      box-sizing: border-box;
-    }
-
     :root {
-      /* base theme: dark/rift neutral, matches the original palette */
       --bg-a: rgb(22, 20, 18);
       --bg-b: rgb(10, 9, 8);
       --panel: rgb(32, 30, 26);
@@ -28,172 +19,5521 @@
       --accent: rgb(255, 182, 70);
       --accent-2: rgb(120, 200, 140);
       --warning: rgb(235, 90, 80);
+      --ok: rgb(120, 200, 140);
+      --line-white: rgba(255, 255, 255, 0.98);
       --shadow: 0 3px 0 rgba(0, 0, 0, 0.46), 0 10px 18px rgba(0, 0, 0, 0.36);
       --font-ui: "Consolas", "Lucida Console", "Courier New", monospace;
       --font-title: "Consolas", "Lucida Console", "Courier New", monospace;
     }
 
-    html, body {
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: linear-gradient(180deg, var(--bg-a), var(--bg-b));
       color: var(--text);
       font-family: var(--font-ui);
+      background: linear-gradient(180deg, var(--bg-a), var(--bg-b));
       text-rendering: geometricPrecision;
     }
 
-    /* center the panel */
-    .maintenance-wrapper {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
+    .hidden {
+      display: none !important;
     }
 
-    .maintenance-panel {
-      max-width: 680px;
+    #app {
       width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .panel {
       background: var(--panel);
       border-top: 2px solid var(--edge-light);
       border-left: 2px solid var(--edge-light);
       border-right: 2px solid var(--edge-dark);
       border-bottom: 2px solid var(--edge-dark);
       box-shadow: var(--shadow);
-      padding: 2.5rem 2rem;
-      display: grid;
-      gap: 1.8rem;
-      position: relative;
       overflow: hidden;
-      text-align: center;
     }
 
-    /* small decorative line at top (just enough to feel like game header) */
-    .maintenance-panel::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: var(--accent);
-      opacity: 0.5;
-    }
-
-    /* wrench emoji + title row */
-    .icon-title {
-      display: flex;
-      flex-direction: column;
+    #globalHeader {
+      padding: 9px 11px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
       align-items: center;
-      gap: 0.5rem;
+      background: linear-gradient(180deg, var(--panel-strong), var(--panel));
     }
 
-    .wrench-icon {
-      font-size: 4.5rem;
-      line-height: 1;
-      filter: drop-shadow(0 4px 0 rgba(0,0,0,0.5));
-      color: var(--accent-2);
-      margin-bottom: 0.25rem;
-    }
-
-    .main-text {
-      font-size: 2.6rem;
+    #brandTitle {
+      margin: 0;
+      font-family: var(--font-title);
+      font-size: clamp(1rem, 1.7vw, 1.42rem);
+      letter-spacing: 0.1em;
       font-weight: 800;
-      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.44);
+    }
+
+    #brandSub {
+      margin: 3px 0 0;
+      color: var(--subtle);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+    }
+
+    #headerPills {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      min-height: 28px;
+      border: 1px solid var(--edge-mid);
+      border-top-color: var(--edge-light);
+      border-left-color: var(--edge-light);
+      border-right-color: var(--edge-dark);
+      border-bottom-color: var(--edge-dark);
+      padding: 6px 10px;
+      font-size: 0.71rem;
+      background: var(--panel);
+      white-space: nowrap;
+      letter-spacing: 0.06em;
+    }
+
+    #mainRoot {
+      min-height: 0;
+      position: relative;
+    }
+
+    .layer {
+      position: absolute;
+      inset: 0;
+      min-height: 0;
+    }
+
+    #menuLayer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    #menuShell {
+      width: min(980px, calc(100% - 16px));
+      max-height: calc(100% - 10px);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background: var(--panel);
+    }
+
+    #menuTopBar {
+      border-bottom: 2px solid var(--edge-mid);
+      padding: 9px 11px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+    }
+
+    #menuTitle {
+      margin: 0;
+      font-size: 0.95rem;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       font-family: var(--font-title);
-      background: linear-gradient(180deg, var(--text) 30%, var(--subtle));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin: 0.25rem 0 0.2rem;
     }
 
-    .main-text.second {
-      font-size: 2rem;
-      margin-top: -0.6rem;
+    #menuStateTag {
+      font-size: 0.74rem;
+      color: var(--subtle);
     }
 
-    /* pure message block — no progress, no extra fluff */
-    .message-block {
+    #menuContent {
+      overflow: auto;
+      padding: 10px;
       display: grid;
-      gap: 0.8rem;
-      margin: 0.5rem 0 0.2rem;
+      gap: 10px;
+      align-content: start;
     }
 
-    .message-line {
-      font-size: 1.3rem;
+    .menu-section {
+      border-top: 2px solid var(--edge-light);
+      border-left: 2px solid var(--edge-light);
+      border-right: 2px solid var(--edge-dark);
+      border-bottom: 2px solid var(--edge-dark);
+      background: var(--panel-strong);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      padding: 9px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .menu-section h3 {
+      margin: 0;
+      font-size: 0.84rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--subtle);
+      font-family: var(--font-title);
+    }
+
+    .menu-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .menu-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .menu-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      position: relative;
+      border-top: 2px solid var(--edge-light);
+      border-left: 2px solid var(--edge-light);
+      border-right: 2px solid var(--edge-dark);
+      border-bottom: 2px solid var(--edge-dark);
+      background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+      padding: 8px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.76rem;
+      color: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.36);
+      transition: filter 0.08s ease;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      top: 4px;
+      height: 5px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.13);
+      pointer-events: none;
+    }
+
+    .btn::after {
+      content: "";
+      position: absolute;
+      left: 7px;
+      right: 7px;
+      bottom: 4px;
+      height: 5px;
+      border-radius: 4px;
+      opacity: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--accent) 0px,
+        var(--accent) 8px,
+        rgba(30, 27, 22, 0.95) 8px,
+        rgba(30, 27, 22, 0.95) 16px
+      );
+      pointer-events: none;
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn:hover::after {
+      opacity: 0.85;
+    }
+
+    .btn:active {
+      border-top-color: var(--edge-dark);
+      border-left-color: var(--edge-dark);
+      border-right-color: var(--edge-light);
+      border-bottom-color: var(--edge-light);
+      transform: translateY(1px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.42);
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 35%, var(--panel-strong)), color-mix(in srgb, var(--accent) 24%, var(--panel)));
+    }
+
+    .btn.alt {
+      background: linear-gradient(180deg, color-mix(in srgb, var(--accent-2) 35%, var(--panel-strong)), color-mix(in srgb, var(--accent-2) 24%, var(--panel)));
+    }
+
+    .btn.warn {
+      background: linear-gradient(180deg, color-mix(in srgb, var(--warning) 34%, var(--panel-strong)), color-mix(in srgb, var(--warning) 22%, var(--panel)));
+    }
+
+    .btn.slim {
+      padding: 6px 8px;
+      font-size: 0.7rem;
+    }
+
+    .btn.selected {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    label.field {
+      display: grid;
+      gap: 5px;
+      font-size: 0.74rem;
+      color: var(--subtle);
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      border: 2px solid var(--edge-dark);
+      border-top-color: var(--edge-mid);
+      border-left-color: var(--edge-mid);
+      border-right-color: var(--edge-light);
+      border-bottom-color: var(--edge-light);
+      background: color-mix(in srgb, var(--panel-strong) 70%, var(--bg-a));
+      color: inherit;
+      font-family: inherit;
+      padding: 6px 8px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .field textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .toggle-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 2px solid var(--edge-mid);
+      border-top-color: var(--edge-light);
+      border-left-color: var(--edge-light);
+      border-right-color: var(--edge-dark);
+      border-bottom-color: var(--edge-dark);
+      padding: 5px 8px;
+      font-size: 0.72rem;
+      background: var(--panel);
+    }
+
+    .scroll-block {
+      max-height: 360px;
+      overflow: auto;
+      border: 2px solid var(--edge-mid);
+      border-top-color: var(--edge-dark);
+      border-left-color: var(--edge-dark);
+      border-right-color: var(--edge-light);
+      border-bottom-color: var(--edge-light);
+      padding: 8px;
+      background: color-mix(in srgb, var(--panel-strong) 76%, var(--bg-a));
+      display: grid;
+      gap: 8px;
+    }
+
+    .achievement-card,
+    .patch-card,
+    .slide-card,
+    .battlepass-card,
+    .profile-card,
+    .campaign-card {
+      border-top: 2px solid var(--edge-light);
+      border-left: 2px solid var(--edge-light);
+      border-right: 2px solid var(--edge-dark);
+      border-bottom: 2px solid var(--edge-dark);
+      background: var(--panel);
+      padding: 8px;
+      display: grid;
+      gap: 5px;
+    }
+
+    .achievement-card.unlocked {
+      background: color-mix(in srgb, var(--ok) 20%, var(--panel));
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 7px;
+      font-size: 0.67rem;
+      border: 1px solid var(--edge-dark);
+      border-top-color: var(--edge-light);
+      border-left-color: var(--edge-light);
+      background: color-mix(in srgb, var(--panel-strong) 80%, var(--panel));
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .progress-wrap {
+      border: 2px solid var(--edge-mid);
+      border-top-color: var(--edge-dark);
+      border-left-color: var(--edge-dark);
+      border-right-color: var(--edge-light);
+      border-bottom-color: var(--edge-light);
+      background: color-mix(in srgb, var(--panel) 88%, var(--bg-a));
+      height: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--accent) 84%, black) 0px,
+        color-mix(in srgb, var(--accent) 84%, black) 10px,
+        color-mix(in srgb, var(--accent-2) 84%, black) 10px,
+        color-mix(in srgb, var(--accent-2) 84%, black) 20px
+      );
+      width: 0%;
+      transition: width 0.15s linear;
+    }
+
+    #gameLayer {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 8px;
+    }
+
+    #gameSidebar {
+      display: grid;
+      grid-template-rows: auto auto auto 1fr;
+      gap: 8px;
+      padding: 8px;
+      overflow: auto;
+      background: var(--panel);
+    }
+
+    #gameSidebar h3 {
+      margin: 0;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--subtle);
+      font-family: var(--font-title);
+    }
+
+    .info-box {
+      border-top: 2px solid var(--edge-light);
+      border-left: 2px solid var(--edge-light);
+      border-right: 2px solid var(--edge-dark);
+      border-bottom: 2px solid var(--edge-dark);
+      background: var(--panel-strong);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      padding: 7px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .kv {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.72rem;
+      border-bottom: 1px dashed color-mix(in srgb, var(--edge-mid) 60%, transparent);
+      padding-bottom: 3px;
+    }
+
+    #gameShell {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-width: 0;
+      background: var(--panel);
+    }
+
+    #gameToolbar {
+      border-bottom: 2px solid var(--edge-mid);
+      padding: 8px;
+      display: grid;
+      grid-template-columns: auto auto auto auto 1fr auto;
+      gap: 6px;
+      align-items: center;
+      background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+    }
+
+    #gameMeta {
+      font-size: 0.72rem;
       color: var(--subtle);
       letter-spacing: 0.06em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #canvasWrap {
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      touch-action: none;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--bg-a) 72%, black), color-mix(in srgb, var(--bg-b) 76%, black)),
+        repeating-linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.16) 0px,
+          rgba(0, 0, 0, 0.16) 2px,
+          rgba(255, 255, 255, 0.02) 2px,
+          rgba(255, 255, 255, 0.02) 4px
+        );
+      border-top: 2px solid var(--edge-dark);
+      border-left: 2px solid var(--edge-dark);
+      border-right: 2px solid var(--edge-light);
+      border-bottom: 2px solid var(--edge-light);
+    }
+
+    #boardCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    #pauseBanner {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5;
+      background: var(--panel);
+      border-top: 2px solid var(--edge-light);
+      border-left: 2px solid var(--edge-light);
+      border-right: 2px solid var(--edge-dark);
+      border-bottom: 2px solid var(--edge-dark);
+      padding: 6px 10px;
       text-transform: uppercase;
-      border-bottom: 1px dashed var(--edge-mid);
-      padding-bottom: 0.8rem;
-      max-width: 380px;
-      margin: 0 auto;
-      width: fit-content;
-      padding-left: 1rem;
-      padding-right: 1rem;
+      letter-spacing: 0.1em;
+      font-size: 0.72rem;
     }
 
-    .message-line:last-of-type {
-      border-bottom: none;
+    #touchModeBtn {
+      min-width: 120px;
     }
 
-    /* subtle footer – no rift era, just nothing */
-    .maint-footer {
+    .mobile-only {
+      display: none !important;
+    }
+
+    #mobileControls {
+      position: fixed;
+      left: 8px;
+      right: 8px;
+      bottom: calc(8px + env(safe-area-inset-bottom));
+      z-index: 26;
+      padding: 8px;
+      display: none;
+      gap: 8px;
+      background: color-mix(in srgb, var(--panel) 90%, black);
+      backdrop-filter: blur(4px);
+    }
+
+    #mobileMainControls {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    #mobileSecondaryControls {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    #mobileControls .btn {
+      min-height: 42px;
+      font-size: 0.74rem;
+      padding: 8px 7px;
+    }
+
+    #touchModeBtn.is-flag {
+      outline: 2px solid var(--warning);
+      outline-offset: -2px;
+    }
+
+    body.mobile-ui #gameLayer {
+      padding-bottom: calc(128px + env(safe-area-inset-bottom));
+    }
+
+    body.mobile-ui.game-active #mobileControls {
+      display: grid;
+    }
+
+    #popupBackdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.52);
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    #popupCard {
+      width: min(560px, 100%);
+      max-height: 100%;
+      overflow: auto;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      background: var(--panel);
+    }
+
+    #popupTitle {
+      margin: 0;
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-family: var(--font-title);
+    }
+
+    #popupBody {
       font-size: 0.8rem;
-      color: var(--edge-mid);
-      text-align: center;
-      border-top: 1px solid var(--edge-dark);
-      padding-top: 1.5rem;
-      margin-top: 0.4rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
+      line-height: 1.4;
+      color: var(--subtle);
+      white-space: pre-wrap;
     }
 
-    /* responsive adjustments */
-    @media (max-width: 540px) {
-      .maintenance-panel {
-        padding: 1.8rem 1.2rem;
+    #popupActions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    #toastStack {
+      position: fixed;
+      right: 12px;
+      top: 76px;
+      z-index: 70;
+      display: grid;
+      gap: 8px;
+      width: min(360px, calc(100% - 24px));
+      pointer-events: none;
+    }
+
+    .toast {
+      border-top: 2px solid var(--edge-light);
+      border-left: 2px solid var(--edge-light);
+      border-right: 2px solid var(--edge-dark);
+      border-bottom: 2px solid var(--edge-dark);
+      background: var(--panel);
+      padding: 7px 9px;
+      font-size: 0.72rem;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(-8px);
+      animation: toastIn 0.16s ease forwards;
+    }
+
+    .toast.good {
+      background: color-mix(in srgb, var(--ok) 18%, var(--panel-strong));
+    }
+
+    .toast.warn {
+      background: color-mix(in srgb, var(--warning) 18%, var(--panel-strong));
+    }
+
+    .toast.bad {
+      background: color-mix(in srgb, var(--warning) 24%, var(--panel-strong));
+    }
+
+    /* Debug rainbow text */
+    .dbg-text {
+      background: linear-gradient(90deg, #ff005a, #ff7a00, #ffdd00, #00c853, #00b0ff, #651fff, #d500f9);
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      display: inline-block;
+      animation: dbgRainbow 2.6s linear infinite, dbgPulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes dbgRainbow {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    @keyframes dbgPulse {
+      0% { opacity: 0.9; }
+      50% { opacity: 1; }
+      100% { opacity: 0.9; }
+    }
+
+    @keyframes toastIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
-      .wrench-icon {
-        font-size: 3.5rem;
+    }
+
+    @media (max-width: 1120px) {
+      #gameLayer {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
       }
-      .main-text {
-        font-size: 2rem;
+
+      #gameSidebar {
+        max-height: 42vh;
       }
-      .main-text.second {
-        font-size: 1.6rem;
+
+      #gameToolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-      .message-line {
-        font-size: 1.1rem;
+
+      #gameMeta {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 780px) {
+      .menu-grid-2,
+      .menu-grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      #menuShell {
+        width: 100%;
+      }
+
+      #globalHeader {
+        grid-template-columns: 1fr;
+      }
+
+      #headerPills {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 920px) {
+      .mobile-only {
+        display: inline-flex !important;
+      }
+
+      #app {
+        padding: 6px;
+        gap: 6px;
+      }
+
+      #globalHeader {
+        padding: 8px;
+      }
+
+      #brandTitle {
+        font-size: clamp(0.94rem, 4.2vw, 1.18rem);
+      }
+
+      #brandSub {
+        margin-top: 2px;
+        font-size: 0.7rem;
+      }
+
+      .pill {
+        min-height: 24px;
+        padding: 4px 7px;
+        font-size: 0.62rem;
+      }
+
+      #gameLayer {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+      }
+
+      #gameShell {
+        min-height: 0;
+      }
+
+      #gameSidebar {
+        position: fixed;
+        left: 8px;
+        right: 8px;
+        bottom: calc(124px + env(safe-area-inset-bottom));
+        max-height: 56vh;
+        z-index: 22;
+        transform: translateY(110%);
+        transition: transform 0.22s ease;
+        pointer-events: none;
+        box-shadow: var(--shadow);
+      }
+
+      body.mobile-hud-open #gameSidebar {
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+
+      #gameToolbar {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+        padding: 6px;
+      }
+
+      #gameToolbar .btn {
+        min-height: 38px;
+        font-size: 0.68rem;
+        padding: 6px 5px;
+      }
+
+      #gameMeta {
+        grid-column: 1 / -1;
+        font-size: 0.64rem;
+      }
+
+      #touchModeBtn {
+        min-width: 0;
+        display: none;
+      }
+
+      #canvasWrap {
+        border-width: 1px;
+      }
+
+      #boardCanvas {
+        cursor: default;
+      }
+
+      #popupCard {
+        max-height: min(84vh, 620px);
+      }
+
+      #toastStack {
+        top: 60px;
+        right: 8px;
+        width: calc(100% - 16px);
       }
     }
   </style>
 </head>
 <body>
-  <div class="maintenance-wrapper">
-    <div class="maintenance-panel">
-
-      <!-- wrench emoji + ongoing / be back soon (exactly as requested) -->
-      <div class="icon-title">
-        <div class="wrench-icon">🔧</div>
-        <div class="main-text">ONGOING</div>
-        <div class="main-text second">MAINTENANCE</div>
+  <div id="app">
+    <header id="globalHeader" class="panel">
+      <div>
+        <h1 id="brandTitle">Minesweeper Plus</h1>
+        <p id="brandSub">Hybrid command board interface for desktop and touch devices.</p>
       </div>
-
-      <!-- pure message, absolutely no progress bar, no buttons, no rift -->
-      <div class="message-block">
-        <div class="message-line">WE'LL BE BACK SOON</div>
+      <div id="headerPills">
+        <span id="pillStatus" class="pill">BOOTING</span>
+        <span id="pillState" class="pill">STATE: LOADING</span>
+        <span id="pillBoard" class="pill">0x0 | 0 mines</span>
+        <span id="pillMode" class="pill">MODE: CLASSIC</span>
+        <span id="pillDebug" class="pill hidden"><span class="dbg-text">DEBUG</span></span>
       </div>
+    </header>
 
-      <!-- completely empty footer – just a line and nothing else (no text) -->
-      <div class="maint-footer"></div>
+    <main id="mainRoot">
+      <section id="menuLayer" class="layer">
+        <div id="menuShell" class="panel">
+          <div id="menuTopBar">
+            <h2 id="menuTitle">Loading</h2>
+            <span id="menuStateTag">LOADING</span>
+          </div>
+          <div id="menuContent"></div>
+        </div>
+      </section>
 
+      <section id="gameLayer" class="layer hidden">
+        <aside id="gameSidebar" class="panel">
+          <div class="info-box">
+            <h3>Run Status</h3>
+            <div class="kv"><span>Special Mode</span><strong id="sideSpecial">CLASSIC</strong></div>
+            <div class="kv"><span>Objective</span><strong id="sideObjective">Clear all safe cells</strong></div>
+            <div class="kv"><span>Mines Left</span><strong id="sideMinesLeft">0</strong></div>
+            <div class="kv"><span>Time</span><strong id="sideTime">00:00</strong></div>
+            <div class="kv"><span>Score</span><strong id="sideScore">0</strong></div>
+            <div class="kv"><span>Combo</span><strong id="sideCombo">0</strong></div>
+          </div>
+
+          <div class="info-box">
+            <h3>Controls</h3>
+            <div class="row">
+              <button class="btn slim" data-game-action="hint">Hint</button>
+              <button class="btn slim" data-game-action="undo" id="undoBtn">Undo</button>
+              <button class="btn slim" data-game-action="swap-reality" id="swapRealityBtn">Swap Reality</button>
+              <button class="btn slim" data-game-action="stabilizer" id="stabilizerBtn">Quantum Stabilizer</button>
+            </div>
+            <div class="row">
+              <button class="btn slim" data-game-action="fit">Fit Board</button>
+              <button class="btn slim" data-game-action="pause">Pause</button>
+              <button class="btn slim" data-game-action="quick-restart">Quick Restart</button>
+            </div>
+            <div style="font-size:0.72rem; color:var(--subtle);">
+              Touch: tap reveal/flag, hold to quick-flag, double tap chord, drag to pan.<br />
+              Desktop: left reveal, right flag, wheel zoom, middle drag. Keyboard still supported.
+            </div>
+          </div>
+
+          <div class="info-box">
+            <h3>Mode Data</h3>
+            <div class="kv"><span>Reality</span><strong id="sideReality">A</strong></div>
+            <div class="kv"><span>Quantum Entropy</span><strong id="sideEntropy">0%</strong></div>
+            <div class="kv"><span>Shields</span><strong id="sideShields">0</strong></div>
+            <div class="kv"><span>Hint Charges</span><strong id="sideHints">0</strong></div>
+            <div class="kv"><span>XP Gain</span><strong id="sideXpGain">0</strong></div>
+          </div>
+
+          <div class="info-box" id="sideAchievementsBox">
+            <h3>Recent</h3>
+            <div id="sideAchievements" style="display:grid;gap:6px;font-size:0.74rem;"></div>
+          </div>
+        </aside>
+
+        <div id="gameShell" class="panel">
+          <div id="gameToolbar">
+            <button class="btn slim" data-game-action="restart">Restart</button>
+            <button class="btn slim" data-game-action="pause">Pause</button>
+            <button class="btn slim" data-game-action="open-settings">Settings</button>
+            <button class="btn slim warn" data-game-action="exit">Exit</button>
+            <button id="mobileHudToggle" class="btn slim alt mobile-only" type="button">HUD</button>
+            <div id="gameMeta">READY</div>
+            <button id="touchModeBtn" class="btn slim">TOUCH: REVEAL</button>
+          </div>
+          <div id="canvasWrap">
+            <canvas id="boardCanvas"></canvas>
+            <div id="pauseBanner" class="hidden">Paused</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="mobileControls" class="panel">
+    <div id="mobileMainControls">
+      <button class="btn primary" type="button" data-mobile-action="touch-reveal">Reveal</button>
+      <button class="btn warn" type="button" data-mobile-action="touch-flag">Flag</button>
+      <button class="btn alt" type="button" data-mobile-action="hud">HUD</button>
+      <button class="btn" type="button" data-mobile-action="pause">Pause</button>
+    </div>
+    <div id="mobileSecondaryControls">
+      <button class="btn slim" type="button" data-mobile-action="zoom-out">-</button>
+      <button class="btn slim" type="button" data-mobile-action="zoom-in">+</button>
+      <button class="btn slim" type="button" data-mobile-action="fit">Fit</button>
+      <button class="btn slim" type="button" data-mobile-action="hint">Hint</button>
+      <button class="btn slim warn" type="button" data-mobile-action="restart">Restart</button>
     </div>
   </div>
+
+  <div id="popupBackdrop" class="hidden">
+    <div id="popupCard" class="panel">
+      <h3 id="popupTitle">Popup</h3>
+      <div id="popupBody"></div>
+      <div id="popupActions"></div>
+    </div>
+  </div>
+
+  <div id="toastStack"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const DIFFICULTIES = {
+        EASY: { rows: 9, cols: 9, mines: 10 },
+        MEDIUM: { rows: 16, cols: 16, mines: 40 },
+        EXPERT: { rows: 45, cols: 90, mines: 500 },
+        "EXPERT+": { rows: 90, cols: 180, mines: 2000 },
+        NIGHTMARE: { rows: 150, cols: 300, mines: 5000 },
+        BOSNIA: { rows: 200, cols: 400, mines: 10000 }
+      };
+
+      const INFINITE_SIZE_MAP = {
+        EASY: 100,
+        MEDIUM: 120,
+        EXPERT: 150,
+        "EXPERT+": 190,
+        NIGHTMARE: 240,
+        BOSNIA: 300
+      };
+
+      const SPECIAL_MODES = [
+        "FOG",
+        "HARDCORE",
+        "TIMED",
+        "RUSH",
+        "TRAINING",
+        "GUIDED",
+        "DAILY",
+        "PHANTOM",
+        "DUALITY",
+        "INFINITE",
+        "SHIELD",
+        "NO FLAGS",
+        "NO NUMBERS",
+        "MARATHON",
+        "REVERSE MINES",
+        "SILENT MODE",
+        "RIFT CAMPAIGN",
+        "EXPEDITION",
+        "MODE FUSION",
+        "WEEKLY RIFT",
+        "RIFT OMEGA"
+      ];
+
+      const UNREAL_MODES = ["DUAL REALITY", "QUANTUM", "RIFT CAMPAIGN", "RIFT OMEGA"];
+
+      const FUSION_POOL = [
+        "FOG",
+        "HARDCORE",
+        "TIMED",
+        "RUSH",
+        "GUIDED",
+        "PHANTOM",
+        "SHIELD",
+        "NO FLAGS",
+        "NO NUMBERS",
+        "REVERSE MINES"
+      ];
+
+      const LANGUAGES = ["EN", "CZ", "ES", "DE", "FR", "IT", "PL", "TR", "JA", "RU"];
+      const THEMES = ["DARK", "LIGHT"];
+      const PALETTES = ["DEFAULT", "EMBER", "ARCTIC", "COLORBLIND"];
+      const QUALITY_PRESETS = ["LOW", "MED", "HIGH"];
+      const GRAPHICS = ["LOW", "MED", "HIGH"];
+      const DISPLAY_MODES = ["WINDOWED", "FULLSCREEN", "BORDERLESS"];
+      const FPS_LIMITS = [30, 60, 120, 144, 240, 0];
+      const HAPTIC_INTENSITIES = ["OFF", "LIGHT", "MEDIUM", "STRONG"];
+
+      const MUSIC_TRACKS = [
+        "Title Theme",
+        "The Icy Cave",
+        "Prepare for Battle",
+        "Mysterious Dungeon",
+        "The Journey Begins",
+        "Decisive Battle",
+        "Night Shade",
+        "Powerup",
+        "Maze"
+      ];
+
+      const BATTLEPASS_BASE_XP = 120;
+      const BATTLEPASS_LINEAR_GROWTH = 35;
+      const BATTLEPASS_QUAD_GROWTH = 2;
+      const BATTLEPASS_MAX_LEVEL = 100;
+      const BATTLEPASS_SEASON_NAME = "RIFT ERA";
+
+      const STORAGE_KEY = "minesweeper_plus_web_phase2";
+      const APP_VERSION = "1.1.02";
+      const VERSION_SEEN_KEY = "minesweeper_plus_web_phase2_seen_version";
+      const INTEGRITY_SALT = "msp2_v1_x7k9";
+      const MAX_CELL_COUNT = 450000;
+      const UNDO_MAX_CHARGES = 3;
+      const INPUT_TIMING_THRESHOLD_MS = 80;
+      // MISS_CLICK_CORRECTION_WINDOW_MS removed per request
+      const CUSTOM_MIN_SIZE = 6;
+      const CUSTOM_MAX_SIZE = 9000;
+      const CUSTOM_MAX_MINES = 16200000;
+      const CUSTOM_SAFE_AREA = 9;
+
+      const NUMBER_COLORS = {
+        1: "#0033cc",
+        2: "#117733",
+        3: "#cc2222",
+        4: "#4020b0",
+        5: "#8b0000",
+        6: "#008080",
+        7: "#444444",
+        8: "#555555"
+      };
+
+      const TRANSLATIONS = {
+        EN: {
+          title: "Minesweeper Plus",
+          subtitle: "Web rewrite",
+          play: "Play",
+          settings: "Settings",
+          more: "More",
+          profile: "Profile",
+          quit: "Quit",
+          back: "Back",
+          difficulty: "Difficulty",
+          custom: "Custom",
+          start: "Start",
+          how_to: "How To",
+          achievements: "Achievements",
+          battlepass: "Battlepass",
+          patch_notes: "Patch Notes"
+        },
+        CZ: {
+          title: "Minesweeper Plus",
+          subtitle: "Web prepis",
+          play: "Hrat",
+          settings: "Nastaveni",
+          more: "Vice",
+          profile: "Profil",
+          quit: "Konec",
+          back: "Zpet",
+          difficulty: "Obtiznost",
+          custom: "Vlastni",
+          start: "Start",
+          how_to: "Napoveda",
+          achievements: "Achievementy",
+          battlepass: "Battlepass",
+          patch_notes: "Patch Notes"
+        }
+      };
+
+      const HOWTO_SLIDES = [
+        {
+          title: "Core Rules",
+          body: "Reveal all safe cells to win. Right click cycles FLAG -> MARK -> EMPTY.\nOpen number + correct adjacent flags = chord reveal around it."
+        },
+        {
+          title: "Speed Controls",
+          body: "Mouse wheel zooms. Middle button or Space + drag pans camera.\nWASD / arrow keys also pan."
+        },
+        {
+          title: "Mode Logic",
+          body: "FOG hides distant tiles. PHANTOM and RUSH fade numbers quickly.\nSHIELD saves you once. REVERSE MINES flips the win condition."
+        },
+        {
+          title: "Unreal Modes",
+          body: "DUAL REALITY supports reality swap (Tab).\nQUANTUM enables stabilizer (E).\nRIFT modes stack multiple hazards and modifiers."
+        }
+      ];
+
+      const PATCH_NOTES = [
+        "v1.1.02: Removed HAC anti-cheat hooks/popups/cooldowns to restore uninterrupted gameplay.",
+        "v1.1.02: HAC may return in a future update, but only after heavy optimization to avoid false flags on legitimate players.",
+        "v1.1.02: Start flow simplified: choose game mode -> difficulty opens immediately.",
+        "v1.1.02: Difficulty buttons still start runs instantly (no extra confirm step).",
+        "v1.1.02: Removed the redundant 'CONTINUE TO DIFFICULTY' step from Play menu.",
+        "Phase 2 web rewrite: moved from compressed single-screen build to full state machine architecture.",
+        "Added Python-like state flow: MENU, PLAY, DIFFICULTY, CUSTOM, SETTINGS (MAIN/VIDEO/AUDIO/GAMEPLAY), MORE, HOW_TO, ACHIEVEMENTS, BATTLEPASS, PATCH_NOTES, UNREAL_MODES, DUAL_REALITY_MENU, QUANTUM_MENU, RIFT_CAMPAIGN_MENU, RIFT_OMEGA_MENU, UNREAL_WARNING, LOADING, GAME.",
+        "Added richer mode behavior and seeded generation for DAILY/WEEKLY/FUSION modes.",
+        "Added profile, XP, battlepass progression, and unlockable achievement tracking in localStorage.",
+        "Improved board rendering with camera panning, zoom-at-cursor, fog overlay, training hints, and mode-aware number visibility."
+      ];
+
+      const ACHIEVEMENTS = [
+        { id: "first_win", name: "FIRST BLOOD", desc: "Win one game.", kind: "wins", target: 1 },
+        { id: "ten_wins", name: "FIELD VETERAN", desc: "Win ten games.", kind: "wins", target: 10 },
+        { id: "hundred_games", name: "NEVER BACK DOWN", desc: "Play 100 games.", kind: "games", target: 100 },
+        { id: "flag_master", name: "FLAG MASTER", desc: "Place 300 flags.", kind: "flags", target: 300 },
+        { id: "mark_master", name: "MARK MASTER", desc: "Place 300 marks.", kind: "marks", target: 300 },
+        { id: "speed_runner", name: "SPEED RUNNER", desc: "Win under 60s.", kind: "speed", target: 60 },
+        { id: "nightmare_win", name: "NIGHT SLAYER", desc: "Win NIGHTMARE.", kind: "difficulty", target: "NIGHTMARE" },
+        { id: "bosnia_win", name: "BOSNIA SURVIVOR", desc: "Win BOSNIA.", kind: "difficulty", target: "BOSNIA" },
+        { id: "dual_win", name: "DOUBLE AGENT", desc: "Win in DUAL REALITY.", kind: "mode", target: "DUAL REALITY" },
+        { id: "quantum_win", name: "COLLAPSE CONTROL", desc: "Win in QUANTUM mode.", kind: "mode", target: "QUANTUM" },
+        { id: "rift_omega_win", name: "OMEGA BREAKER", desc: "Win in RIFT OMEGA.", kind: "mode", target: "RIFT OMEGA" }
+      ];
+
+      const PROFILE_XP_BOOSTS = [
+        { id: "NONE", label: "NO BOOST", mult: 1.0 },
+        { id: "SPARK", label: "SPARK +10%", mult: 1.1 },
+        { id: "SURGE", label: "SURGE +25%", mult: 1.25 },
+        { id: "OMEGA", label: "OMEGA +50%", mult: 1.5 }
+      ];
+
+      const dom = {
+        root: document.documentElement,
+        body: document.body,
+        menuLayer: document.getElementById("menuLayer"),
+        gameLayer: document.getElementById("gameLayer"),
+        gameSidebar: document.getElementById("gameSidebar"),
+        menuTitle: document.getElementById("menuTitle"),
+        menuStateTag: document.getElementById("menuStateTag"),
+        menuContent: document.getElementById("menuContent"),
+        pillStatus: document.getElementById("pillStatus"),
+        pillState: document.getElementById("pillState"),
+        pillBoard: document.getElementById("pillBoard"),
+        pillMode: document.getElementById("pillMode"),
+        gameMeta: document.getElementById("gameMeta"),
+        sideSpecial: document.getElementById("sideSpecial"),
+        sideObjective: document.getElementById("sideObjective"),
+        sideMinesLeft: document.getElementById("sideMinesLeft"),
+        sideTime: document.getElementById("sideTime"),
+        sideScore: document.getElementById("sideScore"),
+        sideCombo: document.getElementById("sideCombo"),
+        sideReality: document.getElementById("sideReality"),
+        sideEntropy: document.getElementById("sideEntropy"),
+        sideShields: document.getElementById("sideShields"),
+        sideHints: document.getElementById("sideHints"),
+        sideXpGain: document.getElementById("sideXpGain"),
+        sideAchievements: document.getElementById("sideAchievements"),
+        pillDebug: document.getElementById("pillDebug"),
+        swapRealityBtn: document.getElementById("swapRealityBtn"),
+        stabilizerBtn: document.getElementById("stabilizerBtn"),
+        undoBtn: document.getElementById("undoBtn"),
+        mobileHudToggle: document.getElementById("mobileHudToggle"),
+        touchModeBtn: document.getElementById("touchModeBtn"),
+        mobileControls: document.getElementById("mobileControls"),
+        pauseBanner: document.getElementById("pauseBanner"),
+        popupBackdrop: document.getElementById("popupBackdrop"),
+        popupTitle: document.getElementById("popupTitle"),
+        popupBody: document.getElementById("popupBody"),
+        popupActions: document.getElementById("popupActions"),
+        toastStack: document.getElementById("toastStack"),
+        canvasWrap: document.getElementById("canvasWrap"),
+        canvas: document.getElementById("boardCanvas")
+      };
+
+      // pressed keys set for shortcut detection
+      const pressedKeys = new Set();
+
+      const ctx = dom.canvas.getContext("2d", { alpha: false });
+
+      const DEFAULT_DATA = {
+        settings: {
+          language: "EN",
+          theme: "DARK",
+          graphics: "HIGH",
+          quality_preset: "HIGH",
+          palette: "DEFAULT",
+          resolution: "1280x720",
+          display_mode: "WINDOWED",
+          vsync: false,
+          fps_limit: 60,
+          show_fps: false,
+          zoom: 1,
+          tile_size: 22,
+          music: true,
+          music_track: 0,
+          volume: 50,
+          particles: true,
+          shake: true,
+          tile_anim: true,
+          glow: false,
+          contrast: "NORMAL",
+          seed: "",
+          use_seed: false,
+          safe_first_click: true,
+          auto_chord: false,
+          safe_first_indicator: true,
+          confirm_exit: true,
+          fast_anim: false,
+          quick_restart: true,
+          mute_on_minimize: true,
+          unreal_warning_skip: false,
+          touch_flag_mode: false,
+          haptic_intensity: "MEDIUM",
+          achievements: {},
+          stats: {},
+          battlepass: {
+            season: BATTLEPASS_SEASON_NAME,
+            xp: 0,
+            level: 1,
+            claimed_level: 0
+          },
+          profile: {
+            display_name: "Rift Operator",
+            equipped_banner: "DEFAULT",
+            owned_banners: ["DEFAULT"],
+            badge_slots: ["NONE", "NONE", "NONE"],
+            active_xp_boost: "NONE",
+            xp_boost_tokens: 0,
+            processed_claimed_level: 0,
+            bp_badge_levels: []
+          }
+        },
+        runtime: {
+          games_played: 0,
+          wins: 0,
+          losses: 0,
+          flags_placed: 0,
+          marks_placed: 0,
+          reveals: 0,
+          biggest_chain: 0,
+          best_times: {},
+          last_difficulty: "MEDIUM",
+          campaign_progress: 1,
+          infinite_best: 0,
+          daily_best: {},
+          weekly_best: {}
+        }
+      };
+
+      function cloneData(obj) {
+        if (typeof structuredClone === "function") {
+          return structuredClone(obj);
+        }
+        return JSON.parse(JSON.stringify(obj));
+      }
+
+      function mergeObjects(base, incoming) {
+        const out = Array.isArray(base) ? [] : {};
+        const keys = new Set([...Object.keys(base || {}), ...Object.keys(incoming || {})]);
+        for (const key of keys) {
+          const a = base ? base[key] : undefined;
+          const b = incoming ? incoming[key] : undefined;
+          if (a && typeof a === "object" && !Array.isArray(a) && b && typeof b === "object" && !Array.isArray(b)) {
+            out[key] = mergeObjects(a, b);
+          } else if (b !== undefined) {
+            out[key] = b;
+          } else {
+            out[key] = a;
+          }
+        }
+        return out;
+      }
+
+      function computeIntegrityHash(obj) {
+        const critical = {
+          wins: obj.runtime?.wins ?? 0,
+          games: obj.runtime?.games_played ?? 0,
+          losses: obj.runtime?.losses ?? 0,
+          flags: obj.runtime?.flags_placed ?? 0,
+          marks: obj.runtime?.marks_placed ?? 0,
+          xp: obj.settings?.battlepass?.xp ?? 0,
+          level: obj.settings?.battlepass?.level ?? 1,
+          ach: JSON.stringify(obj.settings?.achievements ?? {})
+        };
+        const str = JSON.stringify(critical) + INTEGRITY_SALT;
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < str.length; i += 1) {
+          h ^= str.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return (h >>> 0).toString(36);
+      }
+
+      let integrityFailedOnLoad = false;
+      function loadData() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) {
+            return cloneData(DEFAULT_DATA);
+          }
+          const parsed = JSON.parse(raw);
+          const storedHash = parsed._integrity;
+          delete parsed._integrity;
+          const merged = mergeObjects(DEFAULT_DATA, parsed);
+          const computedHash = computeIntegrityHash(merged);
+          if (storedHash && storedHash !== computedHash) {
+            integrityFailedOnLoad = true;
+            return cloneData(DEFAULT_DATA);
+          }
+          return merged;
+        } catch {
+          return cloneData(DEFAULT_DATA);
+        }
+      }
+
+      const data = loadData();
+
+      function saveData() {
+        const toSave = cloneData(data);
+        toSave._integrity = computeIntegrityHash(data);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      }
+
+      const app = {
+        state: "LOADING",
+        previousState: null,
+        settingsReturnState: null,
+        helpReturnState: null,
+        specialMode: null,
+        selectedDifficulty: data.runtime.last_difficulty || "MEDIUM",
+        customInputs: { width: "16", height: "16", mines: "40", seed: "" },
+        customActive: "width",
+        menuScrollY: 0,
+        howtoIndex: 0,
+        loading: null,
+        pendingSetup: null,
+        unrealWarningSetup: null,
+        unrealWarningPendingCustom: false,
+        unrealWarningCheckbox: false,
+        patchScroll: 0,
+        achScroll: 0,
+        profileBannerIndex: 0,
+        profileBoostIndex: 0,
+        touchPointerMode: "REVEAL",
+        isMobileUi: false,
+        mobileHudOpen: false,
+        bootStart: performance.now(),
+        bootDone: false,
+        debugMode: false
+      };
+
+      const game = {
+        rows: 0,
+        cols: 0,
+        mines: 0,
+        difficulty: "MEDIUM",
+        seedText: "",
+        seedKey: "",
+        specialMode: null,
+        modeSet: new Set(),
+        generated: false,
+        gameOver: false,
+        won: false,
+        paused: false,
+        confirmExit: false,
+        hideResultPanel: false,
+        musicMutedByMinimize: false,
+        startTimeMs: 0,
+        elapsedMs: 0,
+        timeLimitSec: null,
+        timerHandle: 0,
+        score: 0,
+        combo: 0,
+        biggestChain: 0,
+        shields: 0,
+        hintCharges: 0,
+        xpGain: 0,
+        activeReality: 0,
+        dualReality: false,
+        quantumMode: false,
+        quantumEntropy: 0,
+        quantumStabilizerUsed: false,
+        quantumStabilizerArmed: false,
+        marathonLevel: 0,
+        campaignMission: 1,
+        sideRecent: [],
+        hoverIndex: -1,
+        cameraX: 0,
+        cameraY: 0,
+        maxScrollX: 0,
+        maxScrollY: 0,
+        pointer: {
+          active: false,
+          id: -1,
+          mode: "",
+          startX: 0,
+          startY: 0,
+          lastX: 0,
+          lastY: 0,
+          moved: false,
+          downIndex: -1,
+          downAt: 0
+        },
+        lastTapAt: 0,
+        lastTapIndex: -1,
+        pinch: {
+          active: false,
+          startDist: 0,
+          startZoom: 0,
+          centerX: 0,
+          centerY: 0
+        },
+        activePointers: {},
+        mineA: null,
+        mineB: null,
+        numbersA: null,
+        numbersB: null,
+        revealed: null,
+        flagged: null,
+        marked: null,
+        revealTimes: null,
+        fogVisible: null,
+        phantomMask: null,
+        quantumRisk: null,
+        practiceSafe: new Set(),
+        practiceMines: new Set(),
+        revealedSafeCount: 0,
+        revealedMineCount: 0,
+        flagCount: 0,
+        resultClosed: false,
+        renderQueued: false,
+        keys: {
+          space: false
+        },
+        undoStack: [],
+        undoCharges: UNDO_MAX_CHARGES,
+        lastActionAt: 0,
+        recentActionTimestamps: [],
+        lastFlagIndex: -1,
+        lastFlagAt: 0
+      };
+
+      function clamp(v, lo, hi) {
+        return Math.max(lo, Math.min(hi, v));
+      }
+
+      function nowMs() {
+        return performance.now();
+      }
+
+      function fmtTime(sec) {
+        const s = Math.max(0, Math.floor(sec));
+        const m = Math.floor(s / 60);
+        const r = s % 60;
+        return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+      }
+
+      function safeInt(value, fallback = 0) {
+        const n = Number.parseInt(value, 10);
+        return Number.isFinite(n) ? n : fallback;
+      }
+
+      function safeFloat(value, fallback = 0) {
+        const n = Number.parseFloat(value);
+        return Number.isFinite(n) ? n : fallback;
+      }
+
+      function hashString(text) {
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < text.length; i += 1) {
+          h ^= text.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      }
+
+      function makeRng(seed) {
+        let t = seed >>> 0;
+        return () => {
+          t += 0x6d2b79f5;
+          let x = t;
+          x = Math.imul(x ^ (x >>> 15), x | 1);
+          x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+          return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function clampByte(value) {
+        return clamp(Math.round(value), 0, 255);
+      }
+
+      function shadeColor(color, delta) {
+        return [
+          clampByte(color[0] + delta),
+          clampByte(color[1] + delta),
+          clampByte(color[2] + delta)
+        ];
+      }
+
+      function rgbToCss(color) {
+        return `rgb(${clampByte(color[0])}, ${clampByte(color[1])}, ${clampByte(color[2])})`;
+      }
+
+      function rgbaToCss(color, alpha = 1) {
+        const a = clamp(Number(alpha), 0, 1);
+        return `rgba(${clampByte(color[0])}, ${clampByte(color[1])}, ${clampByte(color[2])}, ${a.toFixed(3)})`;
+      }
+
+      function dualRealityVisuals() {
+        const state = app.state;
+        if (state === "DUAL_REALITY_MENU" || state === "DUAL_REALITY_HOWTO") {
+          return true;
+        }
+        if (state === "DIFFICULTY" && app.specialMode === "DUAL REALITY") {
+          return true;
+        }
+        return app.specialMode === "DUAL REALITY" && state === "GAME";
+      }
+
+      function quantumVisuals() {
+        const state = app.state;
+        if (state === "QUANTUM_MENU" || state === "QUANTUM_HOWTO") {
+          return true;
+        }
+        if (state === "DIFFICULTY" && app.specialMode === "QUANTUM") {
+          return true;
+        }
+        return app.specialMode === "QUANTUM" && state === "GAME";
+      }
+
+      function riftOmegaVisuals() {
+        const state = app.state;
+        if (state === "RIFT_OMEGA_MENU" || state === "RIFT_OMEGA_HOWTO") {
+          return true;
+        }
+        if (state === "DIFFICULTY" && app.specialMode === "RIFT OMEGA") {
+          return true;
+        }
+        return app.specialMode === "RIFT OMEGA" && state === "GAME";
+      }
+
+      function getPythonThemeBase() {
+        const theme = data.settings.theme || "DARK";
+        let base;
+        if (theme === "LIGHT") {
+          base = {
+            bg_top: [228, 224, 214],
+            bg_bottom: [198, 192, 180],
+            panel: [232, 228, 218],
+            panel_edge: [150, 142, 128],
+            tile: [218, 212, 202],
+            tile_edge: [138, 130, 118],
+            tile_reveal: [196, 190, 180],
+            accent: [210, 140, 40],
+            accent_2: [90, 170, 120],
+            warning: [210, 70, 60],
+            text: [28, 26, 22],
+            dust: [140, 128, 110],
+            metal: [170, 164, 154]
+          };
+        } else {
+          base = {
+            bg_top: [22, 20, 18],
+            bg_bottom: [10, 9, 8],
+            panel: [32, 30, 26],
+            panel_edge: [92, 84, 72],
+            tile: [48, 46, 40],
+            tile_edge: [112, 104, 92],
+            tile_reveal: [26, 24, 20],
+            accent: [255, 182, 70],
+            accent_2: [120, 200, 140],
+            warning: [235, 90, 80],
+            text: [232, 226, 210],
+            dust: [80, 70, 60],
+            metal: [62, 58, 52]
+          };
+        }
+
+        const palette = data.settings.palette || "DEFAULT";
+        if (palette === "EMBER") {
+          base.accent = [255, 150, 70];
+          base.accent_2 = [255, 200, 120];
+          base.warning = [245, 96, 80];
+          base.tile = shadeColor(base.tile, 8);
+          base.tile_edge = shadeColor(base.tile_edge, 6);
+          base.tile_reveal = shadeColor(base.tile_reveal, 8);
+          base.dust = shadeColor(base.dust, 12);
+        } else if (palette === "ARCTIC") {
+          base.accent = [110, 200, 255];
+          base.accent_2 = [120, 225, 210];
+          base.warning = [255, 120, 120];
+          base.tile = shadeColor(base.tile, 4);
+          base.tile_edge = shadeColor(base.tile_edge, 4);
+          base.tile_reveal = shadeColor(base.tile_reveal, 4);
+          base.dust = shadeColor(base.dust, 10);
+        } else if (palette === "COLORBLIND") {
+          base.accent = [255, 200, 0];
+          base.accent_2 = [0, 190, 175];
+          base.warning = [220, 70, 60];
+          base.panel_edge = shadeColor(base.panel_edge, 18);
+          base.tile_edge = shadeColor(base.tile_edge, 18);
+        }
+
+        if (data.settings.contrast === "HIGH") {
+          base.panel_edge = shadeColor(base.panel_edge, 35);
+          base.tile_edge = shadeColor(base.tile_edge, 35);
+          base.accent = shadeColor(base.accent, 25);
+        }
+
+        if (dualRealityVisuals()) {
+          base = {
+            bg_top: [18, 6, 28],
+            bg_bottom: [4, 2, 10],
+            panel: [28, 10, 42],
+            panel_edge: [150, 80, 220],
+            tile: [36, 12, 56],
+            tile_edge: [180, 100, 250],
+            tile_reveal: [14, 6, 24],
+            accent: [90, 255, 220],
+            accent_2: [255, 90, 210],
+            warning: [255, 100, 120],
+            text: [232, 240, 255],
+            dust: [120, 90, 170],
+            metal: [90, 70, 140]
+          };
+        }
+
+        if (quantumVisuals()) {
+          base = {
+            bg_top: [6, 22, 20],
+            bg_bottom: [2, 10, 12],
+            panel: [10, 28, 32],
+            panel_edge: [60, 220, 200],
+            tile: [12, 32, 36],
+            tile_edge: [80, 255, 230],
+            tile_reveal: [4, 18, 20],
+            accent: [120, 255, 140],
+            accent_2: [120, 180, 255],
+            warning: [255, 120, 140],
+            text: [220, 245, 240],
+            dust: [70, 150, 160],
+            metal: [40, 110, 120]
+          };
+        }
+
+        if (riftOmegaVisuals()) {
+          base = {
+            bg_top: [18, 4, 4],
+            bg_bottom: [8, 1, 1],
+            panel: [34, 10, 10],
+            panel_edge: [255, 120, 90],
+            tile: [48, 14, 14],
+            tile_edge: [220, 95, 75],
+            tile_reveal: [22, 7, 7],
+            accent: [255, 140, 85],
+            accent_2: [255, 210, 110],
+            warning: [255, 80, 80],
+            text: [255, 232, 220],
+            dust: [160, 70, 55],
+            metal: [108, 36, 28]
+          };
+        }
+
+        return base;
+      }
+
+      function getPythonNumberColors() {
+        const palette = data.settings.palette || "DEFAULT";
+        let colors;
+        if (palette === "EMBER") {
+          colors = [
+            null,
+            [255, 200, 140],
+            [255, 170, 110],
+            [255, 120, 90],
+            [200, 170, 255],
+            [255, 210, 120],
+            [140, 230, 220],
+            [220, 220, 220],
+            [240, 240, 240]
+          ];
+        } else if (palette === "ARCTIC") {
+          colors = [
+            null,
+            [120, 210, 255],
+            [120, 220, 200],
+            [160, 150, 255],
+            [120, 160, 255],
+            [255, 190, 110],
+            [130, 230, 220],
+            [210, 210, 210],
+            [235, 235, 235]
+          ];
+        } else if (palette === "COLORBLIND") {
+          colors = [
+            null,
+            [0, 114, 178],
+            [0, 158, 115],
+            [213, 94, 0],
+            [204, 121, 167],
+            [240, 228, 66],
+            [86, 180, 233],
+            [230, 159, 0],
+            [235, 235, 235]
+          ];
+        } else {
+          colors = [
+            null,
+            [120, 210, 255],
+            [120, 210, 150],
+            [255, 120, 90],
+            [170, 150, 255],
+            [255, 190, 110],
+            [120, 220, 210],
+            [210, 210, 210],
+            [235, 235, 235]
+          ];
+        }
+
+        if ((data.settings.theme || "DARK") === "LIGHT") {
+          for (let i = 1; i <= 8; i += 1) {
+            colors[i] = shadeColor(colors[i], -40);
+          }
+        }
+        return colors;
+      }
+
+      function getText(key) {
+        const lang = data.settings.language in TRANSLATIONS ? data.settings.language : "EN";
+        return (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || (TRANSLATIONS.EN && TRANSLATIONS.EN[key]) || key;
+      }
+
+      function getBoostMultiplier() {
+        const id = data.settings.profile.active_xp_boost || "NONE";
+        const boost = PROFILE_XP_BOOSTS.find((item) => item.id === id);
+        return boost ? boost.mult : 1;
+      }
+
+      function setPillStatus(text, type = "info") {
+        dom.pillStatus.textContent = text;
+        const map = {
+          info: "var(--subtle)",
+          good: "var(--ok)",
+          warn: "var(--warning)",
+          bad: "var(--warning)"
+        };
+        dom.pillStatus.style.color = map[type] || "var(--subtle)";
+      }
+
+      function pushToast(text, type = "info", ttlMs = 3200) {
+        const el = document.createElement("div");
+        el.className = `toast ${type}`;
+        el.textContent = text;
+        dom.toastStack.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = "0";
+          el.style.transform = "translateY(-6px)";
+          setTimeout(() => {
+            if (el.parentNode) {
+              el.parentNode.removeChild(el);
+            }
+          }, 220);
+        }, ttlMs);
+      }
+
+      function openPopup(title, body, actions) {
+        dom.popupTitle.textContent = title;
+        dom.popupBody.textContent = body;
+        dom.popupActions.innerHTML = "";
+        for (const action of actions) {
+          const btn = document.createElement("button");
+          btn.className = `btn ${action.className || ""}`;
+          btn.textContent = action.label;
+          btn.addEventListener("click", () => {
+            if (action.onClick) {
+              action.onClick();
+            }
+          });
+          dom.popupActions.appendChild(btn);
+        }
+        dom.popupBackdrop.classList.remove("hidden");
+      }
+
+      function setDebugMode(enabled) {
+        app.debugMode = Boolean(enabled);
+        if (dom.pillDebug) {
+          dom.pillDebug.classList.toggle('hidden', !app.debugMode);
+        }
+        if (app.debugMode) {
+          pushToast('Debug mode enabled: XP/Achievements disabled', 'info', 3000);
+          console.info('Debug mode enabled');
+        } else {
+          pushToast('Debug mode disabled', 'good', 1600);
+          console.info('Debug mode disabled');
+        }
+      }
+
+      function closePopup() {
+        dom.popupBackdrop.classList.add("hidden");
+      }
+
+      function applyTheme() {
+        const t = getPythonThemeBase();
+        const style = dom.root.style;
+
+        const panelStrong = shadeColor(t.panel, 8);
+        const edgeLight = shadeColor(t.panel_edge, 40);
+        const edgeDark = shadeColor(t.panel_edge, -82);
+        const subtle = (data.settings.theme || "DARK") === "LIGHT"
+          ? shadeColor(t.text, -70)
+          : shadeColor(t.text, -56);
+        const shadowNear = shadeColor(t.bg_bottom, -26);
+        const shadowFar = shadeColor(t.bg_bottom, -50);
+
+        style.setProperty("--bg-a", rgbToCss(t.bg_top));
+        style.setProperty("--bg-b", rgbToCss(t.bg_bottom));
+        style.setProperty("--panel", rgbToCss(t.panel));
+        style.setProperty("--panel-strong", rgbToCss(panelStrong));
+        style.setProperty("--edge-light", rgbToCss(edgeLight));
+        style.setProperty("--edge-mid", rgbToCss(t.panel_edge));
+        style.setProperty("--edge-dark", rgbToCss(edgeDark));
+        style.setProperty("--edge-deep", rgbToCss(shadeColor(t.panel_edge, -110)));
+        style.setProperty("--text", rgbToCss(t.text));
+        style.setProperty("--subtle", rgbToCss(subtle));
+        style.setProperty("--accent", rgbToCss(t.accent));
+        style.setProperty("--accent-2", rgbToCss(t.accent_2));
+        style.setProperty("--warning", rgbToCss(t.warning));
+        style.setProperty("--ok", rgbToCss(t.accent_2));
+        style.setProperty("--line-white", "rgba(255, 255, 255, 0.98)");
+        style.setProperty("--shadow", `0 3px 0 ${rgbaToCss(shadowNear, 0.52)}, 0 10px 18px ${rgbaToCss(shadowFar, 0.38)}`);
+        dom.root.setAttribute("data-theme", data.settings.theme || "DARK");
+      }
+
+      function detectMobileUi() {
+        const byWidth = window.matchMedia("(max-width: 920px)").matches;
+        const byPointer = window.matchMedia("(pointer: coarse)").matches;
+        return byWidth || byPointer;
+      }
+
+      function setMobileHudOpen(open) {
+        app.mobileHudOpen = Boolean(open) && app.isMobileUi;
+        dom.body.classList.toggle("mobile-hud-open", app.mobileHudOpen);
+      }
+
+      function applyMobileUiMode() {
+        app.isMobileUi = detectMobileUi();
+        dom.body.classList.toggle("mobile-ui", app.isMobileUi);
+        if (!app.isMobileUi) {
+          setMobileHudOpen(false);
+        }
+      }
+
+      function setTouchMode(flagMode, shouldSave = true) {
+        data.settings.touch_flag_mode = Boolean(flagMode);
+        dom.touchModeBtn.textContent = data.settings.touch_flag_mode ? "TOUCH: FLAG" : "TOUCH: REVEAL";
+        dom.touchModeBtn.classList.toggle("is-flag", data.settings.touch_flag_mode);
+
+        const revealBtn = document.querySelector('[data-mobile-action="touch-reveal"]');
+        const flagBtn = document.querySelector('[data-mobile-action="touch-flag"]');
+        if (revealBtn) {
+          revealBtn.classList.toggle("selected", !data.settings.touch_flag_mode);
+        }
+        if (flagBtn) {
+          flagBtn.classList.toggle("selected", data.settings.touch_flag_mode);
+        }
+
+        if (shouldSave) {
+          saveData();
+        }
+      }
+
+      function vibrateTap(duration = 10) {
+        const intensity = data.settings.haptic_intensity || "MEDIUM";
+        if (intensity === "OFF") {
+          return;
+        }
+        const mult = { LIGHT: 0.4, MEDIUM: 1, STRONG: 1.6 }[intensity] || 1;
+        const d = Math.round(clamp(duration * mult, 1, 100));
+        if (typeof navigator.vibrate === "function") {
+          navigator.vibrate(d);
+        }
+      }
+
+      function adjustZoomByFactor(factor) {
+        if (app.state !== "GAME") {
+          return;
+        }
+
+        const oldTile = getTilePx();
+        const oldZoom = clamp(safeFloat(data.settings.zoom, 1), 0.25, 2.4);
+        const nextZoom = clamp(oldZoom * factor, 0.25, 2.4);
+        if (Math.abs(nextZoom - oldZoom) < 0.0001) {
+          return;
+        }
+
+        const view = getCanvasViewSize();
+        const centerX = view.width / 2;
+        const centerY = view.height / 2;
+        const boardX = (game.cameraX + centerX) / oldTile;
+        const boardY = (game.cameraY + centerY) / oldTile;
+
+        data.settings.zoom = nextZoom;
+        saveData();
+
+        const newTile = getTilePx();
+        game.cameraX = boardX * newTile - centerX;
+        game.cameraY = boardY * newTile - centerY;
+        clampCamera();
+        requestRender();
+      }
+
+      function handleMobileAction(action) {
+        if (action === "touch-reveal") {
+          setTouchMode(false);
+          pushToast("Touch mode: Reveal", "info", 900);
+          vibrateTap(12);
+          return;
+        }
+
+        if (action === "touch-flag") {
+          setTouchMode(true);
+          pushToast("Touch mode: Flag", "info", 900);
+          vibrateTap(12);
+          return;
+        }
+
+        if (action === "hud") {
+          setMobileHudOpen(!app.mobileHudOpen);
+          vibrateTap(8);
+          return;
+        }
+
+        if (action === "zoom-out") {
+          adjustZoomByFactor(0.9);
+          return;
+        }
+
+        if (action === "zoom-in") {
+          adjustZoomByFactor(1.1);
+          return;
+        }
+
+        if (action === "fit") {
+          handleGameAction("fit");
+          return;
+        }
+
+        if (action === "pause") {
+          handleGameAction("pause");
+          return;
+        }
+
+        if (action === "hint") {
+          handleGameAction("hint");
+          return;
+        }
+
+        if (action === "restart") {
+          handleGameAction("quick-restart");
+        }
+      }
+
+      function setState(nextState) {
+        app.previousState = app.state;
+        app.state = nextState;
+        applyMobileUiMode();
+        dom.pillState.textContent = `STATE: ${nextState}`;
+        dom.menuStateTag.textContent = nextState;
+
+        const isGame = nextState === "GAME";
+        dom.menuLayer.classList.toggle("hidden", isGame);
+        dom.gameLayer.classList.toggle("hidden", !isGame);
+        dom.body.classList.toggle("game-active", isGame);
+        if (!isGame) {
+          setMobileHudOpen(false);
+        }
+
+        // The canvas is hidden in menu states; force a fresh size when entering GAME.
+        if (isGame) {
+          resizeCanvas();
+        }
+
+        applyTheme();
+        renderState();
+      }
+
+      function getModeLabel() {
+        if (game.specialMode) {
+          return game.specialMode;
+        }
+        return "CLASSIC";
+      }
+
+      function updateHeaderBoardInfo() {
+        dom.pillBoard.textContent = `${game.rows}x${game.cols} | ${game.mines} mines`;
+        dom.pillMode.textContent = `MODE: ${getModeLabel()}`;
+      }
+
+      function syncSidebarInfo() {
+        const minesLeft = game.mines - game.flagCount;
+        dom.sideSpecial.textContent = getModeLabel();
+        dom.sideObjective.textContent = game.modeSet.has("REVERSE MINES")
+          ? "Reveal all mines"
+          : "Clear all safe cells";
+        dom.sideMinesLeft.textContent = String(minesLeft);
+        dom.sideTime.textContent = game.timeLimitSec === null
+          ? fmtTime(getElapsedMs() / 1000)
+          : `${fmtTime(getElapsedMs() / 1000)} / ${fmtTime(game.timeLimitSec)}`;
+        dom.sideScore.textContent = String(game.score);
+        dom.sideCombo.textContent = String(game.combo);
+        dom.sideReality.textContent = game.dualReality ? (game.activeReality === 0 ? "A" : "B") : "-";
+        dom.sideEntropy.textContent = `${Math.round(game.quantumEntropy * 100)}%`;
+        dom.sideShields.textContent = String(game.shields);
+        dom.sideHints.textContent = String(game.hintCharges);
+        dom.sideXpGain.textContent = String(game.xpGain);
+
+        dom.swapRealityBtn.disabled = !game.dualReality;
+        dom.stabilizerBtn.disabled = !game.quantumMode || game.quantumStabilizerUsed;
+        if (dom.undoBtn) {
+          dom.undoBtn.disabled = game.undoStack.length === 0;
+          dom.undoBtn.textContent = game.undoStack.length > 0 ? `Undo (${game.undoStack.length})` : "Undo";
+        }
+
+        if (!game.sideRecent.length) {
+          dom.sideAchievements.innerHTML = "<span style=\"color:var(--subtle);\">No recent unlocks.</span>";
+        } else {
+          dom.sideAchievements.innerHTML = game.sideRecent
+            .slice(-5)
+            .map((x) => `<div class=\"tag\">${x}</div>`)
+            .join("");
+        }
+
+        const metaParts = [
+          `Mines Left: ${minesLeft}`,
+          `Time: ${dom.sideTime.textContent}`,
+          `Reality: ${dom.sideReality.textContent}`,
+          `Score: ${game.score}`,
+          `Combo: ${game.combo}`
+        ];
+        dom.gameMeta.textContent = metaParts.join(" | ");
+      }
+
+      function cycleSetting(key, options) {
+        const cur = data.settings[key];
+        const idx = options.indexOf(cur);
+        const next = options[(idx >= 0 ? idx + 1 : 0) % options.length];
+        data.settings[key] = next;
+        saveData();
+        if (key === "theme" || key === "palette") {
+          applyTheme();
+        }
+      }
+
+      function renderMenuStateTitle() {
+        const map = {
+          LOADING: "Loading",
+          MENU: "Main Menu",
+          PLAY: "Play",
+          DIFFICULTY: "Difficulty",
+          CUSTOM: "Custom Setup",
+          SETTINGS_MAIN: "Settings",
+          SETTINGS_VIDEO: "Video Settings",
+          SETTINGS_AUDIO: "Audio Settings",
+          SETTINGS_GAMEPLAY: "Gameplay Settings",
+          MORE: "More",
+          HOW_TO: "How To",
+          ACHIEVEMENTS: "Achievements",
+          BATTLEPASS: "Battlepass",
+          PATCH_NOTES: "Patch Notes",
+          PROFILE: "Profile",
+          UNREAL_MODES: "Unreal Modes",
+          DUAL_REALITY_MENU: "Dual Reality",
+          QUANTUM_MENU: "Quantum",
+          RIFT_CAMPAIGN_MENU: "Rift Campaign",
+          RIFT_OMEGA_MENU: "Rift Omega",
+          UNREAL_WARNING: "Warning",
+          CAMPAIGN: "Campaign"
+        };
+        dom.menuTitle.textContent = map[app.state] || app.state;
+      }
+
+      function renderState() {
+        renderMenuStateTitle();
+        if (app.state === "GAME") {
+          updateHeaderBoardInfo();
+          syncSidebarInfo();
+          requestRender();
+          return;
+        }
+        renderMenuContent();
+      }
+
+      function menuBtn(label, action, value = "", className = "") {
+        const valAttr = value ? ` data-value="${value}"` : "";
+        return `<button class="btn ${className}" data-action="${action}"${valAttr}>${label}</button>`;
+      }
+
+      function renderMainMenu() {
+        return `
+          <section class="menu-section">
+            <h3>${getText("title")}</h3>
+            <div style="font-size:0.8rem; color:var(--subtle);">${getText("subtitle")} - Full state flow and mode architecture.</div>
+            <div class="menu-grid-2">
+              ${menuBtn(getText("play"), "goto-play", "", "primary")}
+              ${menuBtn(getText("settings"), "goto-settings")}
+              ${menuBtn(getText("more"), "goto-more")}
+              ${menuBtn(getText("profile"), "goto-profile")}
+            </div>
+            <div class="row">
+              ${menuBtn(getText("quit"), "quit", "", "warn")}
+            </div>
+          </section>
+
+          <section class="menu-section">
+            <h3>Quick Status</h3>
+            <div class="row">
+              <span class="tag">Games: ${data.runtime.games_played}</span>
+              <span class="tag">Wins: ${data.runtime.wins}</span>
+              <span class="tag">Losses: ${data.runtime.losses}</span>
+              <span class="tag">Level: ${data.settings.battlepass.level}</span>
+              <span class="tag">XP: ${data.settings.battlepass.xp}</span>
+            </div>
+            <div class="row">
+              <span class="tag">Language: ${data.settings.language}</span>
+              <span class="tag">Theme: ${data.settings.theme}</span>
+              <span class="tag">Palette: ${data.settings.palette}</span>
+              <span class="tag">Last Difficulty: ${data.runtime.last_difficulty}</span>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderPlayMenu() {
+        const rows = [];
+        rows.push(`<div class=\"menu-list\">`);
+        rows.push(`<div style=\"font-size:0.8rem; color:var(--subtle);\">Choose a game mode to continue.</div>`);
+        rows.push(`<div class=\"menu-grid-2\">`);
+
+        rows.push(menuBtn("CLASSIC", "pick-special", "CLASSIC", app.specialMode === null ? "selected" : ""));
+        for (const mode of SPECIAL_MODES) {
+          const selected = app.specialMode === mode;
+          rows.push(menuBtn(mode, "pick-special", mode, selected ? "selected" : ""));
+        }
+
+        rows.push(`</div>`);
+        rows.push(`<div class=\"row\">`);
+        rows.push(menuBtn("UNREAL GAMEMODES", "goto-unreal", "", "alt"));
+        rows.push(menuBtn(getText("back"), "goto-menu"));
+        rows.push(`</div>`);
+        rows.push(`</div>`);
+
+        return `
+          <section class="menu-section">
+            <h3>Mode Selection</h3>
+            ${rows.join("\n")}
+          </section>
+
+          <section class="menu-section">
+            <h3>Current Pick</h3>
+            <div class="row">
+              <span class="tag">Special: ${app.specialMode || "CLASSIC"}</span>
+              <span class="tag">Objective: ${app.specialMode === "REVERSE MINES" ? "Reveal all mines" : "Clear safe cells"}</span>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderDifficultyMenu() {
+        const selectedMode = app.specialMode || "CLASSIC";
+        const buttons = Object.keys(DIFFICULTIES)
+          .map((name) => {
+            const cfg = DIFFICULTIES[name];
+            const selected = app.selectedDifficulty === name;
+            return menuBtn(`${name} ${cfg.rows}x${cfg.cols} (${cfg.mines})`, "start-difficulty", name, selected ? "selected" : "");
+          })
+          .join("\n");
+
+        return `
+          <section class="menu-section">
+            <h3>Selected Mode</h3>
+            <div class="row">
+              <span class="tag">${selectedMode}</span>
+              <span class="tag">Seed: ${data.settings.use_seed ? (data.settings.seed || "(empty)") : "RANDOM"}</span>
+            </div>
+          </section>
+
+          <section class="menu-section">
+            <h3>${getText("difficulty")}</h3>
+            <div class="menu-grid-2">
+              ${buttons}
+              ${menuBtn(getText("custom"), "goto-custom", "", "alt")}
+            </div>
+            <div class="row">
+              ${menuBtn(getText("back"), "back-from-difficulty")}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderCustomMenu() {
+        return `
+          <section class="menu-section">
+            <h3>Custom Setup</h3>
+            <div class="menu-grid-3">
+              <label class="field">Width
+                <input type="number" min="${CUSTOM_MIN_SIZE}" max="${CUSTOM_MAX_SIZE}" step="1" data-input="custom-width" value="${app.customInputs.width}" />
+              </label>
+              <label class="field">Height
+                <input type="number" min="${CUSTOM_MIN_SIZE}" max="${CUSTOM_MAX_SIZE}" step="1" data-input="custom-height" value="${app.customInputs.height}" />
+              </label>
+              <label class="field">Mines
+                <input type="number" min="1" max="${CUSTOM_MAX_MINES}" step="1" data-input="custom-mines" value="${app.customInputs.mines}" />
+              </label>
+            </div>
+            <label class="field">Seed / Workshop Code
+              <input type="text" data-input="custom-seed" maxlength="120" value="${app.customInputs.seed}" />
+            </label>
+            <div class="row">
+              ${menuBtn("START CUSTOM", "start-custom", "", "primary")}
+              ${menuBtn(getText("back"), "goto-difficulty")}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderLoadingMenu() {
+        const pct = app.loading ? Math.round(app.loading.progress * 100) : 0;
+        return `
+          <section class="menu-section">
+            <h3>Loading</h3>
+            <div style="font-size:0.82rem; color:var(--subtle);">Preparing board...</div>
+            <div class="progress-wrap"><div id="loadingFill" class="progress-fill" style="width:${pct}%"></div></div>
+            <div style="font-size:0.76rem; color:var(--subtle);">${pct}%</div>
+          </section>
+        `;
+      }
+
+      function renderSettingsMainMenu() {
+        return `
+          <section class="menu-section">
+            <h3>${getText("settings")}</h3>
+            <div class="menu-grid-3">
+              ${menuBtn("VIDEO", "goto-settings-video", "", "primary")}
+              ${menuBtn("AUDIO", "goto-settings-audio", "", "primary")}
+              ${menuBtn("GAMEPLAY", "goto-settings-gameplay", "", "primary")}
+            </div>
+            <div class="row">
+              ${menuBtn(getText("back"), "back-from-settings")}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderSettingsVideoMenu() {
+        return `
+          <section class="menu-section">
+            <h3>Video</h3>
+            <div class="menu-grid-2">
+              ${menuBtn(`Theme: ${data.settings.theme}`, "cycle-setting", "theme")}
+              ${menuBtn(`Palette: ${data.settings.palette}`, "cycle-setting", "palette")}
+              ${menuBtn(`Graphics: ${data.settings.graphics}`, "cycle-setting", "graphics")}
+              ${menuBtn(`Quality: ${data.settings.quality_preset}`, "cycle-setting", "quality_preset")}
+              ${menuBtn(`Resolution: ${data.settings.resolution}`, "cycle-setting", "resolution")}
+              ${menuBtn(`Display: ${data.settings.display_mode}`, "cycle-setting", "display_mode")}
+              ${menuBtn(`VSync: ${data.settings.vsync ? "ON" : "OFF"}`, "toggle-setting", "vsync")}
+              ${menuBtn(`FPS Limit: ${data.settings.fps_limit === 0 ? "UNLIMITED" : data.settings.fps_limit}`, "cycle-setting", "fps_limit")}
+              ${menuBtn(`Particles: ${data.settings.particles ? "ON" : "OFF"}`, "toggle-setting", "particles")}
+              ${menuBtn(`Glow: ${data.settings.glow ? "ON" : "OFF"}`, "toggle-setting", "glow")}
+              ${menuBtn(`Tile Anim: ${data.settings.tile_anim ? "ON" : "OFF"}`, "toggle-setting", "tile_anim")}
+              ${menuBtn(`Show FPS: ${data.settings.show_fps ? "ON" : "OFF"}`, "toggle-setting", "show_fps")}
+            </div>
+            <div class="row">${menuBtn(getText("back"), "goto-settings-main")}</div>
+          </section>
+        `;
+      }
+
+      function renderSettingsAudioMenu() {
+        return `
+          <section class="menu-section">
+            <h3>Audio</h3>
+            <div class="menu-grid-2">
+              ${menuBtn(`Music: ${data.settings.music ? "ON" : "OFF"}`, "toggle-setting", "music")}
+              ${menuBtn(`Song: ${MUSIC_TRACKS[data.settings.music_track] || MUSIC_TRACKS[0]}`, "cycle-setting", "music_track")}
+            </div>
+            <label class="field">Volume (${data.settings.volume}%)
+              <input type="range" min="0" max="100" step="1" data-input="volume" value="${data.settings.volume}" />
+            </label>
+            <div style="font-size:0.76rem; color:var(--subtle);">Web build stores music settings. Actual music playback can be added later with browser-safe audio handling.</div>
+            <div class="row">${menuBtn(getText("back"), "goto-settings-main")}</div>
+          </section>
+        `;
+      }
+
+      function renderSettingsGameplayMenu() {
+        return `
+          <section class="menu-section">
+            <h3>Gameplay</h3>
+            <div class="menu-grid-2">
+              ${menuBtn(`Language: ${data.settings.language}`, "cycle-setting", "language")}
+              ${menuBtn(`Safe First Click: ${data.settings.safe_first_click ? "ON" : "OFF"}`, "toggle-setting", "safe_first_click")}
+              ${menuBtn(`Use Seed: ${data.settings.use_seed ? "ON" : "OFF"}`, "toggle-setting", "use_seed")}
+              ${menuBtn(`Auto Chord: ${data.settings.auto_chord ? "ON" : "OFF"}`, "toggle-setting", "auto_chord")}
+              ${menuBtn(`Safe Indicator: ${data.settings.safe_first_indicator ? "ON" : "OFF"}`, "toggle-setting", "safe_first_indicator")}
+              ${menuBtn(`Confirm Exit: ${data.settings.confirm_exit ? "ON" : "OFF"}`, "toggle-setting", "confirm_exit")}
+              ${menuBtn(`Fast Anim: ${data.settings.fast_anim ? "ON" : "OFF"}`, "toggle-setting", "fast_anim")}
+              ${menuBtn(`Quick Restart: ${data.settings.quick_restart ? "ON" : "OFF"}`, "toggle-setting", "quick_restart")}
+              ${menuBtn(`Mute On Minimize: ${data.settings.mute_on_minimize ? "ON" : "OFF"}`, "toggle-setting", "mute_on_minimize")}
+              ${menuBtn(`Haptic: ${data.settings.haptic_intensity || "MEDIUM"}`, "cycle-setting", "haptic_intensity")}
+            </div>
+            <label class="field">Seed
+              <input type="text" maxlength="120" data-input="seed" value="${data.settings.seed || ""}" />
+            </label>
+            <div class="row">${menuBtn(getText("back"), "goto-settings-main")}</div>
+          </section>
+        `;
+      }
+
+      function renderMoreMenu() {
+        return `
+          <section class="menu-section">
+            <h3>${getText("more")}</h3>
+            <div class="menu-grid-2">
+              ${menuBtn(getText("how_to"), "goto-howto", "", "primary")}
+              ${menuBtn(getText("achievements"), "goto-achievements", "", "primary")}
+              ${menuBtn(getText("battlepass"), "goto-battlepass", "", "primary")}
+              ${menuBtn(getText("patch_notes"), "goto-patch-notes", "", "primary")}
+            </div>
+            <div class="row">${menuBtn(getText("back"), "goto-menu")}</div>
+          </section>
+        `;
+      }
+
+      function renderHowToMenu() {
+        const index = clamp(app.howtoIndex, 0, HOWTO_SLIDES.length - 1);
+        const slide = HOWTO_SLIDES[index];
+        return `
+          <section class="menu-section">
+            <h3>How To (${index + 1}/${HOWTO_SLIDES.length})</h3>
+            <article class="slide-card">
+              <strong>${slide.title}</strong>
+              <div style="white-space:pre-wrap; font-size:0.8rem; color:var(--subtle);">${slide.body}</div>
+            </article>
+            <div class="row">
+              ${menuBtn("Prev", "howto-prev")}
+              ${menuBtn("Next", "howto-next")}
+              ${menuBtn(getText("back"), "back-from-howto")}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderPatchNotesMenu() {
+        const cards = PATCH_NOTES.map((line, idx) => `<article class="patch-card"><strong>#${idx + 1}</strong><div style="font-size:0.8rem; color:var(--subtle);">${line}</div></article>`).join("\n");
+        return `
+          <section class="menu-section">
+            <h3>Patch Notes</h3>
+            <div class="scroll-block">${cards}</div>
+            <div class="row">${menuBtn(getText("back"), "goto-more")}</div>
+          </section>
+        `;
+      }
+
+      function renderAchievementsMenu() {
+        const unlocked = data.settings.achievements || {};
+        const cards = ACHIEVEMENTS.map((ach) => {
+          const done = !!unlocked[ach.id];
+          return `
+            <article class="achievement-card ${done ? "unlocked" : ""}">
+              <div class="row">
+                <strong>${ach.name}</strong>
+                <span class="tag">${done ? "UNLOCKED" : "LOCKED"}</span>
+              </div>
+              <div style="font-size:0.79rem; color:var(--subtle);">${ach.desc}</div>
+            </article>
+          `;
+        }).join("\n");
+
+        const count = Object.values(unlocked).filter(Boolean).length;
+
+        return `
+          <section class="menu-section">
+            <h3>Achievements (${count}/${ACHIEVEMENTS.length})</h3>
+            <div class="scroll-block">${cards}</div>
+            <div class="row">${menuBtn(getText("back"), "goto-more")}</div>
+          </section>
+        `;
+      }
+
+      function xpRequiredForLevel(level) {
+        if (level <= 1) {
+          return 0;
+        }
+        let sum = 0;
+        for (let lv = 1; lv < level; lv += 1) {
+          const n = lv - 1;
+          sum += BATTLEPASS_BASE_XP + (BATTLEPASS_LINEAR_GROWTH * n) + (BATTLEPASS_QUAD_GROWTH * n * n);
+        }
+        return sum;
+      }
+
+      function battlepassLevelFromXp(totalXp) {
+        let level = 1;
+        while (level < BATTLEPASS_MAX_LEVEL && totalXp >= xpRequiredForLevel(level + 1)) {
+          level += 1;
+        }
+        return level;
+      }
+
+      function renderBattlepassMenu() {
+        const bp = data.settings.battlepass;
+        bp.level = battlepassLevelFromXp(bp.xp);
+        const nextXp = xpRequiredForLevel(Math.min(BATTLEPASS_MAX_LEVEL, bp.level + 1));
+        const curXp = xpRequiredForLevel(bp.level);
+        const span = Math.max(1, nextXp - curXp);
+        const pct = clamp(((bp.xp - curXp) / span) * 100, 0, 100);
+
+        const rows = [];
+        for (let lv = Math.max(1, bp.level - 2); lv <= Math.min(BATTLEPASS_MAX_LEVEL, bp.level + 4); lv += 1) {
+          const claimed = lv <= (bp.claimed_level || 0);
+          rows.push(`
+            <article class="battlepass-card">
+              <div class="row">
+                <strong>Level ${lv}</strong>
+                <span class="tag">${claimed ? "CLAIMED" : "UNCLAIMED"}</span>
+              </div>
+              <div style="font-size:0.78rem; color:var(--subtle);">Reward: banner token, badge progress, profile cosmetics.</div>
+            </article>
+          `);
+        }
+
+        return `
+          <section class="menu-section">
+            <h3>Battlepass - ${bp.season || BATTLEPASS_SEASON_NAME}</h3>
+            <div class="row">
+              <span class="tag">Level: ${bp.level}</span>
+              <span class="tag">XP: ${bp.xp}</span>
+              <span class="tag">Claimed: ${bp.claimed_level || 0}</span>
+            </div>
+            <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <div style="font-size:0.76rem; color:var(--subtle);">${Math.round(pct)}% to next level</div>
+            <div class="scroll-block">${rows.join("\n")}</div>
+            <div class="row">
+              ${menuBtn("Claim Rewards", "claim-battlepass", "", "primary")}
+              ${menuBtn(getText("back"), "goto-more")}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderProfileMenu() {
+        const profile = data.settings.profile;
+        const boost = PROFILE_XP_BOOSTS.find((b) => b.id === profile.active_xp_boost) || PROFILE_XP_BOOSTS[0];
+        return `
+          <section class="menu-section">
+            <h3>Profile</h3>
+            <article class="profile-card">
+              <label class="field">Display Name
+                <input type="text" maxlength="28" data-input="profile-name" value="${profile.display_name || "Rift Operator"}" />
+              </label>
+              <div class="row">
+                <span class="tag">Banner: ${profile.equipped_banner || "DEFAULT"}</span>
+                <span class="tag">XP Boost: ${boost.label}</span>
+              </div>
+              <div class="row">
+                ${menuBtn("Cycle Banner", "profile-cycle-banner")}
+                ${menuBtn("Cycle Boost", "profile-cycle-boost")}
+              </div>
+            </article>
+            <article class="profile-card">
+              <div class="row">
+                <span class="tag">Games: ${data.runtime.games_played}</span>
+                <span class="tag">Wins: ${data.runtime.wins}</span>
+                <span class="tag">Best Chains: ${data.runtime.biggest_chain || 0}</span>
+                <span class="tag">Flags: ${data.runtime.flags_placed || 0}</span>
+                <span class="tag">Marks: ${data.runtime.marks_placed || 0}</span>
+              </div>
+            </article>
+            <div class="row">${menuBtn(getText("back"), "goto-menu")}</div>
+          </section>
+        `;
+      }
+
+      function renderUnrealModesMenu() {
+        return `
+          <section class="menu-section">
+            <h3>Unreal Modes</h3>
+            <div class="menu-grid-2">
+              ${menuBtn("DUAL REALITY", "goto-dual-menu", "", "alt")}
+              ${menuBtn("QUANTUM", "goto-quantum-menu", "", "alt")}
+              ${menuBtn("RIFT CAMPAIGN", "goto-rift-campaign-menu", "", "alt")}
+              ${menuBtn("RIFT OMEGA", "goto-rift-omega-menu", "", "alt")}
+            </div>
+            <div class="row">${menuBtn(getText("back"), "goto-play")}</div>
+          </section>
+        `;
+      }
+
+      function renderUnrealSubMenu(name, howtoPrefix) {
+        return `
+          <section class="menu-section">
+            <h3>${name}</h3>
+            <div style="font-size:0.8rem; color:var(--subtle);">${howtoPrefix}</div>
+            <div class="row">
+              ${menuBtn("Play", "unreal-play", name, "primary")}
+              ${menuBtn("How To", "unreal-howto", name)}
+              ${menuBtn(getText("back"), "goto-unreal")}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderCampaignMenu() {
+        const progress = clamp(Number(data.runtime.campaign_progress || 1), 1, 12);
+        const cards = [];
+        for (let i = 1; i <= 12; i += 1) {
+          cards.push(`
+            <article class="campaign-card" style="opacity:${i <= progress ? 1 : 0.45}">
+              <div class="row">
+                <strong>Mission ${i}</strong>
+                <span class="tag">${i < progress ? "CLEARED" : (i === progress ? "ACTIVE" : "LOCKED")}</span>
+              </div>
+              <div style="font-size:0.78rem; color:var(--subtle);">Objective rotates between clear, survive and ratio-based board targets.</div>
+            </article>
+          `);
+        }
+        return `
+          <section class="menu-section">
+            <h3>Rift Campaign</h3>
+            <div class="scroll-block">${cards.join("\n")}</div>
+            <div class="row">
+              ${menuBtn("Start Mission", "campaign-start", "", "primary")}
+              ${menuBtn(getText("back"), "goto-rift-campaign-menu")}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderUnrealWarningMenu() {
+        return `
+          <section class="menu-section">
+            <h3>Warning</h3>
+            <div style="font-size:0.82rem; color:var(--subtle);">
+              Unreal modes stack extra logic and can be significantly harder.
+              Continue only if you want the advanced variant.
+            </div>
+            <label class="toggle-chip"><input type="checkbox" data-input="warning-skip" ${app.unrealWarningCheckbox ? "checked" : ""} /> Do not show again</label>
+            <div class="row">
+              ${menuBtn("Cancel", "warning-cancel")}
+              ${menuBtn("Proceed", "warning-proceed", "", "warn")}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderMenuContent() {
+        applyTheme();
+        let html = "";
+        switch (app.state) {
+          case "LOADING":
+            html = renderLoadingMenu();
+            break;
+          case "MENU":
+            html = renderMainMenu();
+            break;
+          case "PLAY":
+            html = renderPlayMenu();
+            break;
+          case "DIFFICULTY":
+            html = renderDifficultyMenu();
+            break;
+          case "CUSTOM":
+            html = renderCustomMenu();
+            break;
+          case "SETTINGS_MAIN":
+            html = renderSettingsMainMenu();
+            break;
+          case "SETTINGS_VIDEO":
+            html = renderSettingsVideoMenu();
+            break;
+          case "SETTINGS_AUDIO":
+            html = renderSettingsAudioMenu();
+            break;
+          case "SETTINGS_GAMEPLAY":
+            html = renderSettingsGameplayMenu();
+            break;
+          case "MORE":
+            html = renderMoreMenu();
+            break;
+          case "HOW_TO":
+            html = renderHowToMenu();
+            break;
+          case "ACHIEVEMENTS":
+            html = renderAchievementsMenu();
+            break;
+          case "BATTLEPASS":
+            html = renderBattlepassMenu();
+            break;
+          case "PATCH_NOTES":
+            html = renderPatchNotesMenu();
+            break;
+          case "PROFILE":
+            html = renderProfileMenu();
+            break;
+          case "UNREAL_MODES":
+            html = renderUnrealModesMenu();
+            break;
+          case "DUAL_REALITY_MENU":
+            html = renderUnrealSubMenu("DUAL REALITY", "Swap realities with TAB and adapt to mirrored threats.");
+            break;
+          case "QUANTUM_MENU":
+            html = renderUnrealSubMenu("QUANTUM", "Cells can collapse under uncertainty. Use stabilizer (E) carefully.");
+            break;
+          case "RIFT_CAMPAIGN_MENU":
+            html = renderUnrealSubMenu("RIFT CAMPAIGN", "Mission progression with escalating objectives.");
+            break;
+          case "RIFT_OMEGA_MENU":
+            html = renderUnrealSubMenu("RIFT OMEGA", "Composite hazard mode mixing multiple advanced modifiers.");
+            break;
+          case "UNREAL_WARNING":
+            html = renderUnrealWarningMenu();
+            break;
+          case "CAMPAIGN":
+            html = renderCampaignMenu();
+            break;
+          default:
+            html = `<section class=\"menu-section\">Unknown state: ${app.state}</section>`;
+            break;
+        }
+        dom.menuContent.innerHTML = html;
+      }
+
+      function backFromDifficultyTarget() {
+        if (app.specialMode === "DUAL REALITY") {
+          return "DUAL_REALITY_MENU";
+        }
+        if (app.specialMode === "QUANTUM") {
+          return "QUANTUM_MENU";
+        }
+        if (app.specialMode === "RIFT CAMPAIGN") {
+          return "RIFT_CAMPAIGN_MENU";
+        }
+        if (app.specialMode === "RIFT OMEGA") {
+          return "RIFT_OMEGA_MENU";
+        }
+        return "PLAY";
+      }
+
+      function getInfiniteSetup(diffName) {
+        const base = DIFFICULTIES[diffName] || DIFFICULTIES.MEDIUM;
+        const density = base.mines / Math.max(1, base.rows * base.cols);
+        const size = INFINITE_SIZE_MAP[diffName] || 120;
+        const rows = size;
+        const cols = size;
+        const mines = clamp(Math.round(density * rows * cols), 1, 5000);
+        return { rows, cols, mines };
+      }
+
+      function resolveSeedForCurrentRun() {
+        const parts = [];
+        if (app.specialMode === "DAILY") {
+          const d = new Date();
+          const text = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          parts.push(text);
+        }
+        if (app.specialMode === "WEEKLY RIFT") {
+          const d = new Date();
+          const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+          const day = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - start.getTime()) / 86400000);
+          const week = Math.floor(day / 7) + 1;
+          parts.push(`${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`);
+        }
+        if (data.settings.use_seed && data.settings.seed.trim()) {
+          parts.push(data.settings.seed.trim());
+        }
+        if (!parts.length) {
+          parts.push(`RND:${Date.now()}:${Math.floor(Math.random() * 1e9)}`);
+        }
+        return parts.join("|");
+      }
+
+      function startLoading(setup) {
+        app.pendingSetup = setup;
+        app.loading = {
+          startedAt: nowMs(),
+          durationMs: 850,
+          progress: 0
+        };
+        setState("LOADING");
+        setPillStatus("LOADING", "warn");
+        requestAnimationFrame(updateLoadingFrame);
+      }
+
+      function updateLoadingFrame() {
+        if (app.state !== "LOADING" || !app.loading) {
+          return;
+        }
+        const elapsed = nowMs() - app.loading.startedAt;
+        app.loading.progress = clamp(elapsed / app.loading.durationMs, 0, 1);
+        const fill = document.getElementById("loadingFill");
+        if (fill) {
+          fill.style.width = `${Math.round(app.loading.progress * 100)}%`;
+        }
+        if (app.loading.progress >= 1) {
+          const setup = app.pendingSetup;
+          app.pendingSetup = null;
+          app.loading = null;
+          if (setup) {
+            setupGame(setup);
+            setState("GAME");
+            setPillStatus("RUNNING", "good");
+          } else {
+            setState("MENU");
+            setPillStatus("READY", "info");
+          }
+          return;
+        }
+        requestAnimationFrame(updateLoadingFrame);
+      }
+
+      function handleMenuAction(action, value) {
+        if (action === "goto-menu") {
+          setState("MENU");
+          return;
+        }
+        if (action === "quit") {
+          openPopup("Quit", "Browser tabs cannot be programmatically closed in most cases. Close this tab manually if needed.", [
+            { label: "OK", className: "primary", onClick: closePopup }
+          ]);
+          return;
+        }
+        if (action === "goto-play") {
+          setState("PLAY");
+          return;
+        }
+        if (action === "goto-difficulty") {
+          setState("DIFFICULTY");
+          return;
+        }
+        if (action === "goto-custom") {
+          setState("CUSTOM");
+          return;
+        }
+        if (action === "goto-settings") {
+          app.settingsReturnState = "MENU";
+          setState("SETTINGS_MAIN");
+          return;
+        }
+        if (action === "goto-settings-main") {
+          setState("SETTINGS_MAIN");
+          return;
+        }
+        if (action === "goto-settings-video") {
+          setState("SETTINGS_VIDEO");
+          return;
+        }
+        if (action === "goto-settings-audio") {
+          setState("SETTINGS_AUDIO");
+          return;
+        }
+        if (action === "goto-settings-gameplay") {
+          setState("SETTINGS_GAMEPLAY");
+          return;
+        }
+        if (action === "back-from-settings") {
+          const target = app.settingsReturnState || "MENU";
+          app.settingsReturnState = null;
+          setState(target);
+          if (target === "GAME") {
+            resumeFromSettings();
+          }
+          return;
+        }
+        if (action === "goto-more") {
+          setState("MORE");
+          return;
+        }
+        if (action === "goto-profile") {
+          setState("PROFILE");
+          return;
+        }
+        if (action === "goto-howto") {
+          app.helpReturnState = app.state === "MORE" ? "MORE" : "MENU";
+          app.howtoIndex = 0;
+          setState("HOW_TO");
+          return;
+        }
+        if (action === "howto-prev") {
+          app.howtoIndex = clamp(app.howtoIndex - 1, 0, HOWTO_SLIDES.length - 1);
+          renderMenuContent();
+          return;
+        }
+        if (action === "howto-next") {
+          app.howtoIndex = clamp(app.howtoIndex + 1, 0, HOWTO_SLIDES.length - 1);
+          renderMenuContent();
+          return;
+        }
+        if (action === "back-from-howto") {
+          const target = app.helpReturnState || "MORE";
+          app.helpReturnState = null;
+          setState(target);
+          if (target === "GAME") {
+            resumeFromSettings();
+          }
+          return;
+        }
+        if (action === "goto-achievements") {
+          setState("ACHIEVEMENTS");
+          return;
+        }
+        if (action === "goto-battlepass") {
+          setState("BATTLEPASS");
+          return;
+        }
+        if (action === "goto-patch-notes") {
+          setState("PATCH_NOTES");
+          return;
+        }
+        if (action === "goto-unreal") {
+          setState("UNREAL_MODES");
+          return;
+        }
+        if (action === "goto-dual-menu") {
+          setState("DUAL_REALITY_MENU");
+          return;
+        }
+        if (action === "goto-quantum-menu") {
+          setState("QUANTUM_MENU");
+          return;
+        }
+        if (action === "goto-rift-campaign-menu") {
+          setState("RIFT_CAMPAIGN_MENU");
+          return;
+        }
+        if (action === "goto-rift-omega-menu") {
+          setState("RIFT_OMEGA_MENU");
+          return;
+        }
+        if (action === "campaign-start") {
+          app.specialMode = "RIFT CAMPAIGN";
+          app.selectedDifficulty = "MEDIUM";
+          setState("DIFFICULTY");
+          return;
+        }
+        if (action === "pick-special") {
+          app.specialMode = value === "CLASSIC" ? null : value;
+          setState("DIFFICULTY");
+          return;
+        }
+        if (action === "unreal-play") {
+          app.specialMode = value;
+          if (value === "RIFT CAMPAIGN") {
+            setState("CAMPAIGN");
+          } else {
+            setState("DIFFICULTY");
+          }
+          return;
+        }
+        if (action === "unreal-howto") {
+          app.helpReturnState = app.state;
+          app.howtoIndex = 3;
+          setState("HOW_TO");
+          return;
+        }
+        if (action === "back-from-difficulty") {
+          setState(backFromDifficultyTarget());
+          return;
+        }
+        if (action === "start-difficulty") {
+          const diff = value in DIFFICULTIES ? value : "MEDIUM";
+          app.selectedDifficulty = diff;
+          data.runtime.last_difficulty = diff;
+          saveData();
+          let setup = { ...DIFFICULTIES[diff], difficulty: diff, custom: false };
+          if (app.specialMode === "INFINITE") {
+            setup = { ...getInfiniteSetup(diff), difficulty: diff, custom: false };
+          }
+          if (
+            (app.specialMode === "DUAL REALITY" || app.specialMode === "QUANTUM" || app.specialMode === "RIFT OMEGA") &&
+            !data.settings.unreal_warning_skip
+          ) {
+            app.unrealWarningSetup = setup;
+            app.unrealWarningPendingCustom = false;
+            app.unrealWarningCheckbox = false;
+            setState("UNREAL_WARNING");
+          } else {
+            startLoading(setup);
+          }
+          return;
+        }
+        if (action === "start-custom") {
+          const width = clamp(safeInt(app.customInputs.width, 16), CUSTOM_MIN_SIZE, CUSTOM_MAX_SIZE);
+          const height = clamp(safeInt(app.customInputs.height, 16), CUSTOM_MIN_SIZE, CUSTOM_MAX_SIZE);
+          const maxMines = Math.min(CUSTOM_MAX_MINES, (width * height) - CUSTOM_SAFE_AREA);
+          const mines = clamp(safeInt(app.customInputs.mines, 40), 1, Math.max(1, maxMines));
+          const seed = String(app.customInputs.seed || "").trim();
+
+          data.settings.seed = seed;
+          data.settings.use_seed = !!seed;
+          saveData();
+
+          const setup = {
+            rows: height,
+            cols: width,
+            mines,
+            difficulty: "CUSTOM",
+            custom: true
+          };
+
+          if (
+            (app.specialMode === "DUAL REALITY" || app.specialMode === "QUANTUM" || app.specialMode === "RIFT OMEGA") &&
+            !data.settings.unreal_warning_skip
+          ) {
+            app.unrealWarningSetup = setup;
+            app.unrealWarningPendingCustom = true;
+            app.unrealWarningCheckbox = false;
+            setState("UNREAL_WARNING");
+          } else {
+            startLoading(setup);
+          }
+          return;
+        }
+        if (action === "warning-cancel") {
+          app.unrealWarningSetup = null;
+          setState("DIFFICULTY");
+          return;
+        }
+        if (action === "warning-proceed") {
+          if (app.unrealWarningCheckbox) {
+            data.settings.unreal_warning_skip = true;
+            saveData();
+          }
+          const setup = app.unrealWarningSetup;
+          app.unrealWarningSetup = null;
+          if (setup) {
+            startLoading(setup);
+          } else {
+            setState("DIFFICULTY");
+          }
+          return;
+        }
+        if (action === "claim-battlepass") {
+          const bp = data.settings.battlepass;
+          const level = battlepassLevelFromXp(bp.xp);
+          if (level <= (bp.claimed_level || 0)) {
+            pushToast("No unclaimed battlepass rewards.", "warn");
+            return;
+          }
+          bp.claimed_level = level;
+          data.settings.profile.xp_boost_tokens = (data.settings.profile.xp_boost_tokens || 0) + Math.max(1, Math.floor(level / 5));
+          saveData();
+          pushToast(`Claimed rewards up to level ${level}.`, "good");
+          renderMenuContent();
+          return;
+        }
+        if (action === "profile-cycle-banner") {
+          const profile = data.settings.profile;
+          const options = ["DEFAULT", "RIFT", "STEEL", "ARCTIC", "EMBER"];
+          let idx = options.indexOf(profile.equipped_banner || "DEFAULT");
+          if (idx < 0) {
+            idx = 0;
+          }
+          profile.equipped_banner = options[(idx + 1) % options.length];
+          if (!Array.isArray(profile.owned_banners)) {
+            profile.owned_banners = ["DEFAULT"];
+          }
+          if (!profile.owned_banners.includes(profile.equipped_banner)) {
+            profile.owned_banners.push(profile.equipped_banner);
+          }
+          saveData();
+          renderMenuContent();
+          return;
+        }
+        if (action === "profile-cycle-boost") {
+          const profile = data.settings.profile;
+          let idx = PROFILE_XP_BOOSTS.findIndex((x) => x.id === profile.active_xp_boost);
+          if (idx < 0) {
+            idx = 0;
+          }
+          profile.active_xp_boost = PROFILE_XP_BOOSTS[(idx + 1) % PROFILE_XP_BOOSTS.length].id;
+          saveData();
+          renderMenuContent();
+          return;
+        }
+        if (action === "cycle-setting") {
+          const key = value;
+          if (key === "theme") {
+            cycleSetting("theme", THEMES);
+          } else if (key === "palette") {
+            cycleSetting("palette", PALETTES);
+          } else if (key === "graphics") {
+            cycleSetting("graphics", GRAPHICS);
+          } else if (key === "quality_preset") {
+            cycleSetting("quality_preset", QUALITY_PRESETS);
+          } else if (key === "display_mode") {
+            cycleSetting("display_mode", DISPLAY_MODES);
+          } else if (key === "fps_limit") {
+            cycleSetting("fps_limit", FPS_LIMITS);
+          } else if (key === "music_track") {
+            const i = safeInt(data.settings.music_track, 0);
+            data.settings.music_track = (i + 1) % MUSIC_TRACKS.length;
+            saveData();
+          } else if (key === "language") {
+            cycleSetting("language", LANGUAGES);
+          } else if (key === "haptic_intensity") {
+            cycleSetting("haptic_intensity", HAPTIC_INTENSITIES);
+          } else if (key === "resolution") {
+            const resolutions = ["800x600", "1024x768", "1280x720", "1366x768", "1600x900", "1920x1080"];
+            cycleSetting("resolution", resolutions);
+          }
+          renderMenuContent();
+          requestRender();
+          return;
+        }
+        if (action === "toggle-setting") {
+          const key = value;
+          data.settings[key] = !data.settings[key];
+          saveData();
+          renderMenuContent();
+          requestRender();
+          return;
+        }
+      }
+
+      function handleMenuInput(target) {
+        const type = target.getAttribute("data-input");
+        if (!type) {
+          return;
+        }
+        if (type === "custom-width") {
+          app.customInputs.width = target.value;
+        } else if (type === "custom-height") {
+          app.customInputs.height = target.value;
+        } else if (type === "custom-mines") {
+          app.customInputs.mines = target.value;
+        } else if (type === "custom-seed") {
+          app.customInputs.seed = target.value;
+        } else if (type === "seed") {
+          data.settings.seed = String(target.value || "");
+          saveData();
+        } else if (type === "volume") {
+          data.settings.volume = clamp(safeInt(target.value, 50), 0, 100);
+          saveData();
+          renderMenuContent();
+        } else if (type === "profile-name") {
+          data.settings.profile.display_name = String(target.value || "Rift Operator").slice(0, 28);
+          saveData();
+        } else if (type === "warning-skip") {
+          app.unrealWarningCheckbox = !!target.checked;
+        }
+      }
+
+      function bindMenuEvents() {
+        dom.menuContent.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-action]");
+          if (!button) {
+            return;
+          }
+          const action = button.getAttribute("data-action") || "";
+          const value = button.getAttribute("data-value") || "";
+          handleMenuAction(action, value);
+        });
+
+        dom.menuContent.addEventListener("input", (event) => {
+          handleMenuInput(event.target);
+        });
+
+        dom.menuContent.addEventListener("change", (event) => {
+          handleMenuInput(event.target);
+        });
+      }
+
+      function bindPopupEvents() {
+        dom.popupBackdrop.addEventListener("click", (event) => {
+          if (event.target === dom.popupBackdrop) {
+            closePopup();
+          }
+        });
+      }
+
+      function getModeSetFromSpecialMode() {
+        const out = new Set();
+
+        if (!app.specialMode || app.specialMode === "CLASSIC") {
+          return out;
+        }
+
+        const seedHash = hashString(`${resolveSeedForCurrentRun()}|MODESET`);
+        const rng = makeRng(seedHash);
+
+        if (app.specialMode === "MODE FUSION") {
+          out.add("MODE FUSION");
+          const pool = [...FUSION_POOL];
+          for (let i = 0; i < 3 && pool.length; i += 1) {
+            const idx = Math.floor(rng() * pool.length);
+            out.add(pool[idx]);
+            pool.splice(idx, 1);
+          }
+          return out;
+        }
+
+        if (app.specialMode === "WEEKLY RIFT") {
+          out.add("WEEKLY RIFT");
+          out.add("TIMED");
+          out.add("FOG");
+          out.add("PHANTOM");
+          out.add(FUSION_POOL[Math.floor(rng() * FUSION_POOL.length)]);
+          return out;
+        }
+
+        if (app.specialMode === "RIFT OMEGA") {
+          out.add("RIFT OMEGA");
+          ["FOG", "PHANTOM", "TIMED", "HARDCORE", "SHIELD", "GUIDED"].forEach((name) => out.add(name));
+          return out;
+        }
+
+        if (app.specialMode === "RIFT CAMPAIGN") {
+          out.add("RIFT CAMPAIGN");
+          out.add("GUIDED");
+          out.add("TIMED");
+          return out;
+        }
+
+        if (app.specialMode === "EXPEDITION") {
+          out.add("EXPEDITION");
+          out.add("MARATHON");
+          return out;
+        }
+
+        if (app.specialMode === "DUAL REALITY") {
+          out.add("DUAL REALITY");
+          return out;
+        }
+
+        if (app.specialMode === "QUANTUM") {
+          out.add("QUANTUM");
+          return out;
+        }
+
+        out.add(app.specialMode);
+        return out;
+      }
+
+      function rcToIndex(r, c) {
+        return r * game.cols + c;
+      }
+
+      function indexToRC(index) {
+        const r = Math.floor(index / game.cols);
+        return [r, index - r * game.cols];
+      }
+
+      function insideBoard(r, c) {
+        return r >= 0 && c >= 0 && r < game.rows && c < game.cols;
+      }
+
+      function getTilePx() {
+        const base = clamp(safeFloat(data.settings.tile_size, 22), 8, 50);
+        const zoom = clamp(safeFloat(data.settings.zoom, 1), 0.25, 2.4);
+        return clamp(base * zoom, 6, 140);
+      }
+
+      function getBoardPixelSize() {
+        const tile = getTilePx();
+        return {
+          tile,
+          width: game.cols * tile,
+          height: game.rows * tile
+        };
+      }
+
+      function getCanvasViewSize() {
+        return {
+          width: dom.canvas.clientWidth || 1,
+          height: dom.canvas.clientHeight || 1
+        };
+      }
+
+      function clampCamera() {
+        const board = getBoardPixelSize();
+        const view = getCanvasViewSize();
+        if (board.width <= view.width) {
+          game.cameraX = -((view.width - board.width) / 2);
+        } else {
+          game.cameraX = clamp(game.cameraX, 0, board.width - view.width);
+        }
+        if (board.height <= view.height) {
+          game.cameraY = -((view.height - board.height) / 2);
+        } else {
+          game.cameraY = clamp(game.cameraY, 0, board.height - view.height);
+        }
+      }
+
+      function centerCamera() {
+        const board = getBoardPixelSize();
+        const view = getCanvasViewSize();
+        game.cameraX = (board.width / 2) - (view.width / 2);
+        game.cameraY = (board.height / 2) - (view.height / 2);
+        clampCamera();
+      }
+
+      function fitBoardToView() {
+        if (!game.rows || !game.cols) {
+          return;
+        }
+        const view = getCanvasViewSize();
+        const base = clamp(safeFloat(data.settings.tile_size, 22), 8, 50);
+        const target = Math.min(view.width / Math.max(1, game.cols * base), view.height / Math.max(1, game.rows * base));
+        data.settings.zoom = clamp(target, 0.25, 2.4);
+        saveData();
+        centerCamera();
+        requestRender();
+      }
+
+      function resizeCanvas() {
+        const rect = dom.canvasWrap.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const width = Math.max(1, Math.floor(rect.width * dpr));
+        const height = Math.max(1, Math.floor(rect.height * dpr));
+        if (dom.canvas.width === width && dom.canvas.height === height) {
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          clampCamera();
+          requestRender();
+          return;
+        }
+        dom.canvas.width = width;
+        dom.canvas.height = height;
+        dom.canvas.style.width = `${Math.max(1, rect.width)}px`;
+        dom.canvas.style.height = `${Math.max(1, rect.height)}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        clampCamera();
+        requestRender();
+      }
+
+      function getElapsedMs() {
+        if (!game.startTimeMs) {
+          return game.elapsedMs;
+        }
+        if (game.gameOver || game.paused) {
+          return game.elapsedMs;
+        }
+        return nowMs() - game.startTimeMs;
+      }
+
+      function startGameTimer() {
+        if (game.startTimeMs) {
+          return;
+        }
+        game.startTimeMs = nowMs();
+        game.elapsedMs = 0;
+        clearInterval(game.timerHandle);
+        game.timerHandle = window.setInterval(() => {
+          if (app.state !== "GAME") {
+            return;
+          }
+          if (game.gameOver || game.paused) {
+            return;
+          }
+          game.elapsedMs = getElapsedMs();
+          if (game.timeLimitSec !== null && (game.elapsedMs / 1000) >= game.timeLimitSec) {
+            endGame(false, "Time limit reached.");
+            return;
+          }
+          syncSidebarInfo();
+          requestRender();
+        }, 120);
+      }
+
+      function stopGameTimer() {
+        clearInterval(game.timerHandle);
+        game.timerHandle = 0;
+      }
+
+      function resumeFromSettings() {
+        if (app.state !== "GAME") {
+          return;
+        }
+        game.paused = false;
+        dom.pauseBanner.classList.add("hidden");
+        syncSidebarInfo();
+      }
+
+      function initBoardArrays() {
+        const len = game.rows * game.cols;
+        game.mineA = new Uint8Array(len);
+        game.mineB = new Uint8Array(len);
+        game.numbersA = new Uint8Array(len);
+        game.numbersB = new Uint8Array(len);
+        game.revealed = new Uint8Array(len);
+        game.flagged = new Uint8Array(len);
+        game.marked = new Uint8Array(len);
+        game.revealTimes = new Float64Array(len);
+        game.fogVisible = new Uint8Array(len);
+        game.phantomMask = new Uint8Array(len);
+        game.quantumRisk = new Float32Array(len);
+      }
+
+      function currentMineMask() {
+        if (game.dualReality && game.activeReality === 1) {
+          return game.mineB;
+        }
+        return game.mineA;
+      }
+
+      function currentNumbers() {
+        if (game.dualReality && game.activeReality === 1) {
+          return game.numbersB;
+        }
+        return game.numbersA;
+      }
+
+      function anyMineAt(index) {
+        if (game.dualReality) {
+          return !!(game.mineA[index] || game.mineB[index]);
+        }
+        return !!game.mineA[index];
+      }
+
+      function recomputeNumbers(mineMask, outNumbers) {
+        outNumbers.fill(0);
+        for (let r = 0; r < game.rows; r += 1) {
+          for (let c = 0; c < game.cols; c += 1) {
+            const i = rcToIndex(r, c);
+            if (!mineMask[i]) {
+              continue;
+            }
+            for (let dr = -1; dr <= 1; dr += 1) {
+              for (let dc = -1; dc <= 1; dc += 1) {
+                if (dr === 0 && dc === 0) {
+                  continue;
+                }
+                const rr = r + dr;
+                const cc = c + dc;
+                if (!insideBoard(rr, cc)) {
+                  continue;
+                }
+                const j = rcToIndex(rr, cc);
+                if (!mineMask[j]) {
+                  outNumbers[j] += 1;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      function buildProtectedMask(firstIndex) {
+        const len = game.rows * game.cols;
+        const protect = new Uint8Array(len);
+        const [startR, startC] = indexToRC(firstIndex);
+
+        const safeFirstEnabled = data.settings.safe_first_click && !game.modeSet.has("REVERSE MINES");
+        if (safeFirstEnabled) {
+          for (let dr = -1; dr <= 1; dr += 1) {
+            for (let dc = -1; dc <= 1; dc += 1) {
+              const rr = startR + dr;
+              const cc = startC + dc;
+              if (insideBoard(rr, cc)) {
+                protect[rcToIndex(rr, cc)] = 1;
+              }
+            }
+          }
+        }
+
+        if (game.modeSet.has("GUIDED")) {
+          for (let dr = -2; dr <= 2; dr += 1) {
+            const rr = startR + dr;
+            if (insideBoard(rr, startC)) {
+              protect[rcToIndex(rr, startC)] = 1;
+            }
+          }
+          for (let dc = -2; dc <= 2; dc += 1) {
+            const cc = startC + dc;
+            if (insideBoard(startR, cc)) {
+              protect[rcToIndex(startR, cc)] = 1;
+            }
+          }
+        }
+        return protect;
+      }
+
+      function buildCandidateList(protectMask) {
+        const len = game.rows * game.cols;
+        let candidatesCount = 0;
+        for (let i = 0; i < len; i += 1) {
+          if (!protectMask[i]) {
+            candidatesCount += 1;
+          }
+        }
+        const candidates = new Uint32Array(candidatesCount);
+        for (let i = 0, k = 0; i < len; i += 1) {
+          if (!protectMask[i]) {
+            candidates[k] = i;
+            k += 1;
+          }
+        }
+        return { candidates, candidatesCount };
+      }
+
+      function fillMines(mask, targetMines, firstIndex, seedSalt) {
+        const len = game.rows * game.cols;
+        const protect = buildProtectedMask(firstIndex);
+        const { candidates, candidatesCount } = buildCandidateList(protect);
+        if (candidatesCount <= 0) {
+          return;
+        }
+
+        const mines = clamp(targetMines, 1, Math.max(1, candidatesCount - 1));
+
+        const modeKey = Array.from(game.modeSet).sort().join(",");
+        const seed = hashString(`${game.seedText}|${seedSalt}|${game.rows}|${game.cols}|${mines}|${modeKey}`);
+        const rng = makeRng(seed);
+
+        for (let i = 0; i < mines; i += 1) {
+          const j = i + Math.floor(rng() * (candidatesCount - i));
+          const temp = candidates[i];
+          candidates[i] = candidates[j];
+          candidates[j] = temp;
+          mask[candidates[i]] = 1;
+        }
+
+        if (game.modeSet.has("PHANTOM")) {
+          for (let i = 0; i < len; i += 1) {
+            if (mask[i] && rng() < 0.25) {
+              game.phantomMask[i] = 1;
+            }
+          }
+        }
+
+        if (game.quantumMode) {
+          for (let i = 0; i < len; i += 1) {
+            game.quantumRisk[i] = rng();
+          }
+          game.quantumEntropy = 0.35 + rng() * 0.45;
+        }
+      }
+
+      function generateDualRealityMines(firstIndex) {
+        const len = game.rows * game.cols;
+        const protect = buildProtectedMask(firstIndex);
+        const { candidates, candidatesCount } = buildCandidateList(protect);
+        if (candidatesCount <= 0) {
+          game.mines = 0;
+          return;
+        }
+
+        game.mineA.fill(0);
+        game.mineB.fill(0);
+
+        const maxPer = Math.floor(candidatesCount / 2);
+        let totalMines = Math.min(game.mines, maxPer * 2);
+        totalMines = Math.max(0, totalMines);
+        const perA = Math.floor(totalMines / 2);
+        const perB = totalMines - perA;
+        game.mines = totalMines;
+
+        const modeKey = Array.from(game.modeSet).sort().join(",");
+        const seed = hashString(`${game.seedText}|DUAL|${game.rows}|${game.cols}|${game.mines}|${modeKey}`);
+        const rng = makeRng(seed);
+
+        for (let i = 0; i < candidatesCount; i += 1) {
+          const j = i + Math.floor(rng() * (candidatesCount - i));
+          const tmp = candidates[i];
+          candidates[i] = candidates[j];
+          candidates[j] = tmp;
+        }
+
+        for (let i = 0; i < perA; i += 1) {
+          game.mineA[candidates[i]] = 1;
+        }
+        for (let i = perA; i < perA + perB; i += 1) {
+          game.mineB[candidates[i]] = 1;
+        }
+
+        game.phantomMask.fill(0);
+        if (game.modeSet.has("PHANTOM")) {
+          for (let i = 0; i < len; i += 1) {
+            if ((game.mineA[i] || game.mineB[i]) && rng() < 0.25) {
+              game.phantomMask[i] = 1;
+            }
+          }
+        }
+
+        recomputeNumbers(game.mineA, game.numbersA);
+        recomputeNumbers(game.mineB, game.numbersB);
+      }
+
+      function generateMines(firstIndex) {
+        if (game.dualReality) {
+          generateDualRealityMines(firstIndex);
+        } else {
+          fillMines(game.mineA, game.mines, firstIndex, "A");
+          recomputeNumbers(game.mineA, game.numbersA);
+        }
+
+        game.generated = true;
+
+        if (game.modeSet.has("TRAINING")) {
+          game.practiceSafe.clear();
+          game.practiceMines.clear();
+          for (let i = 0; i < game.mineA.length; i += 1) {
+            if (game.mineA[i]) {
+              game.practiceMines.add(i);
+            } else if (!game.mineA[i] && game.numbersA[i] === 0) {
+              game.practiceSafe.add(i);
+            }
+            if (game.practiceMines.size > 70 && game.practiceSafe.size > 70) {
+              break;
+            }
+          }
+        }
+      }
+
+      function modeHas(name) {
+        return game.modeSet.has(name);
+      }
+
+      function computeTimeLimit(rows, cols, mines) {
+        let t = Math.floor((rows * cols) * 0.18 + mines * 1.1);
+        if (modeHas("RUSH")) {
+          t = Math.floor(t * 0.65);
+        }
+        return clamp(t, 20, 7200);
+      }
+
+      function difficultyBaseXp() {
+        switch (game.difficulty) {
+          case "EASY":
+            return 80;
+          case "MEDIUM":
+            return 130;
+          case "EXPERT":
+            return 220;
+          case "EXPERT+":
+            return 340;
+          case "NIGHTMARE":
+            return 510;
+          case "BOSNIA":
+            return 700;
+          default:
+            return 160;
+        }
+      }
+
+      function addXp(amount, reason = "") {
+        if (app.debugMode) {
+          console.info('addXp suppressed in debug mode');
+          return;
+        }
+        const bp = data.settings.battlepass;
+        const boosted = Math.floor(amount * getBoostMultiplier());
+        bp.xp += Math.max(0, boosted);
+        bp.level = battlepassLevelFromXp(bp.xp);
+        game.xpGain += boosted;
+        if (boosted > 0 && reason) {
+          pushToast(`+${boosted} XP (${reason})`, "good", 2000);
+        }
+      }
+
+      function achievementUnlocked(id) {
+        return !!(data.settings.achievements && data.settings.achievements[id]);
+      }
+
+      function unlockAchievement(ach) {
+        if (app.debugMode) {
+          console.info('unlockAchievement suppressed in debug mode', ach && ach.id);
+          return;
+        }
+        if (!data.settings.achievements) {
+          data.settings.achievements = {};
+        }
+        if (data.settings.achievements[ach.id]) {
+          return;
+        }
+        data.settings.achievements[ach.id] = true;
+        game.sideRecent.push(ach.name);
+        pushToast(`Achievement unlocked: ${ach.name}`, "good", 3200);
+      }
+
+      function evaluateAchievements(context = {}) {
+        if (app.debugMode) {
+          return;
+        }
+        for (const ach of ACHIEVEMENTS) {
+          if (achievementUnlocked(ach.id)) {
+            continue;
+          }
+          let ok = false;
+          if (ach.kind === "wins") {
+            ok = (data.runtime.wins || 0) >= ach.target;
+          } else if (ach.kind === "games") {
+            ok = (data.runtime.games_played || 0) >= ach.target;
+          } else if (ach.kind === "flags") {
+            ok = (data.runtime.flags_placed || 0) >= ach.target;
+          } else if (ach.kind === "marks") {
+            ok = (data.runtime.marks_placed || 0) >= ach.target;
+          } else if (ach.kind === "speed") {
+            ok = !!context.win && context.elapsedSec <= ach.target;
+          } else if (ach.kind === "difficulty") {
+            ok = !!context.win && context.difficulty === ach.target;
+          } else if (ach.kind === "mode") {
+            ok = !!context.win && context.specialMode === ach.target;
+          }
+          if (ok) {
+            unlockAchievement(ach);
+          }
+        }
+      }
+
+      function setupGame(setup) {
+        closePopup();
+
+        game.rows = clamp(safeInt(setup.rows, 16), CUSTOM_MIN_SIZE, CUSTOM_MAX_SIZE);
+        game.cols = clamp(safeInt(setup.cols, 16), CUSTOM_MIN_SIZE, CUSTOM_MAX_SIZE);
+
+        const maxMines = Math.max(1, (game.rows * game.cols) - 1);
+        game.mines = clamp(safeInt(setup.mines, 40), 1, maxMines);
+
+        if ((game.rows * game.cols) > MAX_CELL_COUNT) {
+          const scale = Math.sqrt(MAX_CELL_COUNT / (game.rows * game.cols));
+          game.rows = Math.max(CUSTOM_MIN_SIZE, Math.floor(game.rows * scale));
+          game.cols = Math.max(CUSTOM_MIN_SIZE, Math.floor(game.cols * scale));
+          game.mines = clamp(game.mines, 1, Math.max(1, (game.rows * game.cols) - 1));
+          pushToast(`Board was scaled down to ${game.rows}x${game.cols} for browser safety.`, "warn", 4500);
+        }
+
+        game.difficulty = setup.difficulty || "CUSTOM";
+        game.seedText = resolveSeedForCurrentRun();
+        game.seedKey = hashString(game.seedText).toString(16);
+        game.specialMode = app.specialMode;
+        game.modeSet = getModeSetFromSpecialMode();
+
+        game.dualReality = game.modeSet.has("DUAL REALITY");
+        game.quantumMode = game.modeSet.has("QUANTUM");
+        game.activeReality = 0;
+        applyTheme();
+
+        game.generated = false;
+        game.gameOver = false;
+        game.won = false;
+        game.paused = false;
+        game.confirmExit = false;
+        game.resultClosed = false;
+        game.startTimeMs = 0;
+        game.elapsedMs = 0;
+
+        game.score = 0;
+        game.combo = 0;
+        game.biggestChain = 0;
+        game.shields = game.modeSet.has("SHIELD") ? 1 : 0;
+        game.hintCharges = game.modeSet.has("HARDCORE") ? 0 : 3;
+        game.xpGain = 0;
+
+        game.quantumEntropy = 0;
+        game.quantumStabilizerUsed = false;
+        game.quantumStabilizerArmed = false;
+        game.marathonLevel = game.modeSet.has("MARATHON") ? Math.max(1, game.marathonLevel || 1) : 0;
+
+        game.sideRecent = [];
+        game.hoverIndex = -1;
+        game.flagCount = 0;
+        game.revealedSafeCount = 0;
+        game.revealedMineCount = 0;
+        game.undoStack = [];
+        game.undoCharges = UNDO_MAX_CHARGES;
+        game.lastActionAt = 0;
+        game.recentActionTimestamps = [];
+        game.lastFlagIndex = -1;
+        game.lastFlagAt = 0;
+
+        initBoardArrays();
+
+        game.timeLimitSec = (game.modeSet.has("TIMED") || game.modeSet.has("RUSH"))
+          ? computeTimeLimit(game.rows, game.cols, game.mines)
+          : null;
+
+        data.runtime.last_difficulty = game.difficulty;
+        saveData();
+
+        updateHeaderBoardInfo();
+        centerCamera();
+        stopGameTimer();
+        dom.pauseBanner.classList.add("hidden");
+        syncSidebarInfo();
+        requestRender();
+      }
+
+      function getBoardCellFromCanvasPoint(clientX, clientY) {
+        const rect = dom.canvas.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const tile = getTilePx();
+        const worldX = game.cameraX + x;
+        const worldY = game.cameraY + y;
+        const c = Math.floor(worldX / tile);
+        const r = Math.floor(worldY / tile);
+        if (!insideBoard(r, c)) {
+          return null;
+        }
+        return { r, c, index: rcToIndex(r, c) };
+      }
+
+      function mirrorIndex(index) {
+        const [r, c] = indexToRC(index);
+        const mr = game.rows - 1 - r;
+        const mc = game.cols - 1 - c;
+        return rcToIndex(mr, mc);
+      }
+
+      function revealFogAround(index, radius = 2) {
+        if (!modeHas("FOG")) {
+          return;
+        }
+        const [r, c] = indexToRC(index);
+        for (let dr = -radius; dr <= radius; dr += 1) {
+          for (let dc = -radius; dc <= radius; dc += 1) {
+            const rr = r + dr;
+            const cc = c + dc;
+            if (insideBoard(rr, cc)) {
+              game.fogVisible[rcToIndex(rr, cc)] = 1;
+            }
+          }
+        }
+      }
+
+      function shouldShowNumber(index) {
+        if (modeHas("NO NUMBERS")) {
+          return false;
+        }
+        const value = currentNumbers()[index];
+        if (value <= 0) {
+          return false;
+        }
+
+        if (modeHas("PHANTOM")) {
+          const elapsed = (getElapsedMs() / 1000) - game.revealTimes[index];
+          return elapsed <= 3.2;
+        }
+
+        if (modeHas("RUSH")) {
+          const elapsed = (getElapsedMs() / 1000) - game.revealTimes[index];
+          return elapsed <= 1.5;
+        }
+
+        return true;
+      }
+
+      function revealCellIndex(index) {
+        if (game.revealed[index]) {
+          return;
+        }
+        game.revealed[index] = 1;
+        game.revealTimes[index] = getElapsedMs() / 1000;
+        revealFogAround(index, 2);
+      }
+
+      function relocateMine(index) {
+        const mask = currentMineMask();
+        if (!mask[index]) {
+          return false;
+        }
+        for (let i = 0; i < mask.length; i += 1) {
+          if (i === index) {
+            continue;
+          }
+          if (!mask[i] && !game.revealed[i] && !game.flagged[i]) {
+            mask[index] = 0;
+            mask[i] = 1;
+            recomputeNumbers(mask, currentNumbers());
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function getAdjacentIndices(index) {
+        const out = [];
+        const [r, c] = indexToRC(index);
+        for (let dr = -1; dr <= 1; dr += 1) {
+          for (let dc = -1; dc <= 1; dc += 1) {
+            if (dr === 0 && dc === 0) {
+              continue;
+            }
+            const rr = r + dr;
+            const cc = c + dc;
+            if (insideBoard(rr, cc)) {
+              out.push(rcToIndex(rr, cc));
+            }
+          }
+        }
+        return out;
+      }
+
+      function floodReveal(startIndex) {
+        const stack = [startIndex];
+        const mask = currentMineMask();
+        const nums = currentNumbers();
+
+        while (stack.length) {
+          const i = stack.pop();
+          if (game.revealed[i] || game.flagged[i]) {
+            continue;
+          }
+          if (mask[i]) {
+            continue;
+          }
+
+          revealCellIndex(i);
+          game.revealedSafeCount += 1;
+          data.runtime.reveals = (data.runtime.reveals || 0) + 1;
+          game.score += 4;
+          game.combo += 1;
+          game.biggestChain = Math.max(game.biggestChain, game.combo);
+
+          if (nums[i] !== 0) {
+            continue;
+          }
+          for (const n of getAdjacentIndices(i)) {
+            if (!game.revealed[n] && !game.flagged[n] && !mask[n]) {
+              stack.push(n);
+            }
+          }
+        }
+      }
+
+      function pushUndoState() {
+        if (game.gameOver || game.paused || game.undoCharges <= 0 || !game.generated) {
+          return;
+        }
+        const len = game.revealed.length;
+        game.undoStack.push({
+          revealed: new Uint8Array(game.revealed),
+          flagged: new Uint8Array(game.flagged),
+          marked: new Uint8Array(game.marked),
+          revealedSafeCount: game.revealedSafeCount,
+          revealedMineCount: game.revealedMineCount,
+          score: game.score,
+          combo: game.combo,
+          flagCount: game.flagCount
+        });
+        game.undoCharges -= 1;
+      }
+
+      function performUndo() {
+        if (game.gameOver || game.paused || game.undoStack.length === 0) {
+          return;
+        }
+        const state = game.undoStack.pop();
+        game.undoCharges += 1;
+        for (let i = 0; i < game.revealed.length; i += 1) {
+          game.revealed[i] = state.revealed[i];
+          game.flagged[i] = state.flagged[i];
+          game.marked[i] = state.marked[i];
+        }
+        game.revealedSafeCount = state.revealedSafeCount;
+        game.revealedMineCount = state.revealedMineCount;
+        game.score = state.score;
+        game.combo = state.combo;
+        game.flagCount = state.flagCount;
+        syncSidebarInfo();
+        requestRender();
+      }
+
+      function recordActionTimestamp() {
+        const now = nowMs();
+        game.lastActionAt = now;
+        game.recentActionTimestamps.push(now);
+        while (game.recentActionTimestamps.length > 20) {
+          game.recentActionTimestamps.shift();
+        }
+      }
+
+      function checkInputTiming() {
+        return false;
+      }
+
+      function chordReveal(index, fromAutoChord = false) {
+        if (game.dualReality || modeHas("NO FLAGS")) {
+          return;
+        }
+        if (!game.revealed[index]) {
+          return;
+        }
+        const n = currentNumbers()[index];
+        if (n <= 0) {
+          return;
+        }
+        const adj = getAdjacentIndices(index);
+        let flags = 0;
+        for (const j of adj) {
+          if (game.flagged[j]) {
+            flags += 1;
+          }
+        }
+        if (flags !== n) {
+          return;
+        }
+        if (!fromAutoChord) {
+          pushUndoState();
+        }
+        for (const j of adj) {
+          if (!game.flagged[j] && !game.revealed[j]) {
+            revealIndex(j, false, true);
+          }
+        }
+      }
+
+      function checkWinCondition() {
+        if (game.gameOver) {
+          return;
+        }
+
+        let won = false;
+        if (modeHas("REVERSE MINES")) {
+          won = game.revealedMineCount >= game.mines;
+        } else if (game.dualReality) {
+          const totalCells = game.rows * game.cols;
+          const unrevealed = totalCells - game.revealedSafeCount;
+          won = unrevealed === game.mines;
+        } else {
+          won = game.revealedSafeCount >= ((game.rows * game.cols) - game.mines);
+        }
+
+        if (won) {
+          endGame(true, "Board cleared.");
+        }
+      }
+
+      function revealAllMinesOnLoss() {
+        if (modeHas("REVERSE MINES")) {
+          return;
+        }
+        for (let i = 0; i < game.mineA.length; i += 1) {
+          if (game.dualReality ? (game.mineA[i] || game.mineB[i]) : game.mineA[i]) {
+            game.revealed[i] = 1;
+          }
+        }
+      }
+
+      function revealIndex(index, applyMirror = true, skipUndo = false) {
+        if (game.gameOver || game.paused) {
+          return;
+        }
+        if (index < 0 || index >= game.revealed.length) {
+          return;
+        }
+
+        if (!game.generated) {
+          generateMines(index);
+          startGameTimer();
+          revealFogAround(index, 3);
+        }
+
+        if (game.flagged[index]) {
+          return;
+        }
+
+        if (game.revealed[index]) {
+          chordReveal(index);
+          requestRender();
+          return;
+        }
+
+        recordActionTimestamp();
+        if (checkInputTiming()) {
+          return;
+        }
+        if (!skipUndo) {
+          pushUndoState();
+        }
+
+        const mineMask = currentMineMask();
+        const mineInEitherReality = game.dualReality ? !!(game.mineA[index] || game.mineB[index]) : !!mineMask[index];
+
+        if (modeHas("REVERSE MINES")) {
+          if (mineMask[index]) {
+            revealCellIndex(index);
+            game.revealedMineCount += 1;
+            game.score += 9;
+            game.combo += 1;
+          } else {
+            endGame(false, "Safe cell opened in REVERSE MINES.");
+            return;
+          }
+        } else if (mineInEitherReality) {
+          if (game.quantumMode && game.quantumStabilizerArmed && !game.quantumStabilizerUsed) {
+            game.quantumStabilizerUsed = true;
+            game.quantumStabilizerArmed = false;
+            relocateMine(index);
+            pushToast("Quantum stabilizer prevented collapse.", "good");
+          } else if (game.shields > 0) {
+            game.shields -= 1;
+            relocateMine(index);
+            pushToast("Shield consumed. Mine relocated.", "warn");
+          } else {
+            revealCellIndex(index);
+            endGame(false, "Mine triggered.");
+            return;
+          }
+        }
+
+        if (!modeHas("REVERSE MINES")) {
+          if (game.dualReality) {
+            const queue = [index];
+            const nums = currentNumbers();
+            while (queue.length) {
+              const i = queue.pop();
+              if (game.revealed[i] || game.flagged[i]) {
+                continue;
+              }
+              const lethal = !!(game.mineA[i] || game.mineB[i]);
+              revealCellIndex(i);
+              if (lethal) {
+                endGame(false, "Dual reality mine triggered.");
+                return;
+              }
+              game.revealedSafeCount += 1;
+              data.runtime.reveals = (data.runtime.reveals || 0) + 1;
+              game.score += 4;
+              game.combo += 1;
+              game.biggestChain = Math.max(game.biggestChain, game.combo);
+              if (nums[i] !== 0) {
+                continue;
+              }
+              for (const n of getAdjacentIndices(i)) {
+                if (game.revealed[n] || game.flagged[n]) {
+                  continue;
+                }
+                if (!game.mineA[n] && !game.mineB[n]) {
+                  queue.push(n);
+                }
+              }
+            }
+          } else {
+            floodReveal(index);
+          }
+        }
+
+        if (applyMirror && modeHas("DUALITY")) {
+          const m = mirrorIndex(index);
+          if (m !== index) {
+            revealIndex(m, false, true);
+          }
+        }
+
+        checkWinCondition();
+        syncSidebarInfo();
+        requestRender();
+      }
+
+      function countFlags() {
+        let n = 0;
+        for (let i = 0; i < game.flagged.length; i += 1) {
+          n += game.flagged[i];
+        }
+        return n;
+      }
+
+      function toggleFlagIndex(index, mirror = true) {
+        if (game.gameOver || game.paused) {
+          return;
+        }
+        if (index < 0 || index >= game.flagged.length) {
+          return;
+        }
+
+        if (!game.generated) {
+          generateMines(index);
+          startGameTimer();
+        }
+
+        if (game.revealed[index]) {
+          chordReveal(index);
+          requestRender();
+          return;
+        }
+
+        recordActionTimestamp();
+        if (checkInputTiming()) {
+          return;
+        }
+        const now = nowMs();
+        // miss-click correction logic removed per request
+        game.lastFlagIndex = index;
+        game.lastFlagAt = now;
+        if (!modeHas("NO FLAGS")) {
+          pushUndoState();
+        }
+
+        if (modeHas("NO FLAGS")) {
+          const toggled = game.marked[index] ? 0 : 1;
+          game.marked[index] = toggled;
+          if (toggled) {
+            data.runtime.marks_placed = (data.runtime.marks_placed || 0) + 1;
+          }
+          game.flagCount = countFlags();
+          evaluateAchievements({});
+          syncSidebarInfo();
+          requestRender();
+          return;
+        }
+
+        if (game.flagged[index]) {
+          game.flagged[index] = 0;
+          game.marked[index] = 1;
+          data.runtime.marks_placed = (data.runtime.marks_placed || 0) + 1;
+        } else if (game.marked[index]) {
+          game.marked[index] = 0;
+        } else {
+          game.flagged[index] = 1;
+          data.runtime.flags_placed = (data.runtime.flags_placed || 0) + 1;
+        }
+
+        game.flagCount = countFlags();
+
+        if (mirror && modeHas("DUALITY")) {
+          const m = mirrorIndex(index);
+          if (m !== index && !game.revealed[m]) {
+            toggleFlagIndex(m, false);
+          }
+        }
+
+        if (data.settings.auto_chord && !game.dualReality && !modeHas("NO FLAGS") && !modeHas("HARDCORE")) {
+          for (const j of getAdjacentIndices(index)) {
+            if (game.revealed[j]) {
+              chordReveal(j, true);
+            }
+          }
+        }
+
+        evaluateAchievements({});
+        syncSidebarInfo();
+        requestRender();
+      }
+
+      function computeRunKey() {
+        const modeLabel = Array.from(game.modeSet).sort().join("+") || "CLASSIC";
+        return `${game.rows}x${game.cols}:${game.mines}|${game.difficulty}|${modeLabel}`;
+      }
+
+      function endGame(won, reason) {
+        if (game.gameOver) {
+          return;
+        }
+
+        game.gameOver = true;
+        game.won = won;
+        game.elapsedMs = getElapsedMs();
+        stopGameTimer();
+
+        if (!won) {
+          revealAllMinesOnLoss();
+        }
+
+        data.runtime.games_played = (data.runtime.games_played || 0) + 1;
+        if (won) {
+          data.runtime.wins = (data.runtime.wins || 0) + 1;
+        } else {
+          data.runtime.losses = (data.runtime.losses || 0) + 1;
+        }
+
+        data.runtime.biggest_chain = Math.max(data.runtime.biggest_chain || 0, game.biggestChain || 0);
+
+        const elapsedSec = Math.floor(game.elapsedMs / 1000);
+        if (won) {
+          const key = computeRunKey();
+          const old = data.runtime.best_times[key];
+          if (typeof old !== "number" || elapsedSec < old) {
+            data.runtime.best_times[key] = elapsedSec;
+          }
+
+          const base = difficultyBaseXp();
+          const modeBonus = game.modeSet.size * 24 + (game.modeSet.has("RIFT OMEGA") ? 220 : 0);
+          const speedBonus = Math.max(0, Math.floor((game.rows * game.cols) / Math.max(20, elapsedSec + 1)));
+          addXp(base + modeBonus + speedBonus, "win");
+
+          if (game.modeSet.has("MARATHON")) {
+            game.marathonLevel = Math.max(1, game.marathonLevel) + 1;
+          }
+
+          if (game.specialMode === "RIFT CAMPAIGN") {
+            data.runtime.campaign_progress = Math.max(data.runtime.campaign_progress || 1, (data.runtime.campaign_progress || 1) + 1);
+          }
+        } else {
+          addXp(12, "match end");
+          game.combo = 0;
+        }
+
+        const context = {
+          win: won,
+          elapsedSec,
+          difficulty: game.difficulty,
+          specialMode: game.specialMode || "CLASSIC"
+        };
+        evaluateAchievements(context);
+
+        saveData();
+        syncSidebarInfo();
+        requestRender();
+
+        setPillStatus(won ? "VICTORY" : "DEFEAT", won ? "good" : "bad");
+
+        const summary = [
+          `${reason}`,
+          `Time: ${fmtTime(elapsedSec)}`,
+          `Board: ${game.rows}x${game.cols} (${game.mines} mines)`,
+          `Mode: ${getModeLabel()}`,
+          `Score: ${game.score}`,
+          `Combo Peak: ${game.biggestChain}`,
+          `XP Gained: ${game.xpGain}`
+        ].join("\n");
+
+        const actions = [
+          {
+            label: "Restart",
+            className: "primary",
+            onClick: () => {
+              closePopup();
+              restartCurrentBoard();
+            }
+          },
+          {
+            label: "Back To Menu",
+            onClick: () => {
+              closePopup();
+              setState("MENU");
+            }
+          }
+        ];
+
+        if (won && game.modeSet.has("MARATHON")) {
+          actions.unshift({
+            label: "Next Stage",
+            className: "alt",
+            onClick: () => {
+              closePopup();
+              const nextRows = clamp(Math.floor(game.rows * 1.07), CUSTOM_MIN_SIZE, 600);
+              const nextCols = clamp(Math.floor(game.cols * 1.07), CUSTOM_MIN_SIZE, 900);
+              const nextMines = clamp(Math.floor(game.mines * 1.14), 1, (nextRows * nextCols) - 1);
+              startLoading({ rows: nextRows, cols: nextCols, mines: nextMines, difficulty: game.difficulty, custom: false });
+            }
+          });
+        }
+
+        openPopup(won ? "Mission Complete" : "Mission Failed", summary, actions);
+      }
+
+      function restartCurrentBoard() {
+        if (!game.rows || !game.cols) {
+          return;
+        }
+        const setup = {
+          rows: game.rows,
+          cols: game.cols,
+          mines: game.mines,
+          difficulty: game.difficulty,
+          custom: game.difficulty === "CUSTOM"
+        };
+        if (app.state === "GAME" && game.generated) {
+          setupGame(setup);
+          setState("GAME");
+          setPillStatus("RUNNING", "good");
+        } else {
+          startLoading(setup);
+        }
+      }
+
+      function drawMine(x, y, tile, colorMain, colorCore) {
+        const cxm = x + (tile / 2);
+        const cym = y + (tile / 2);
+        const radius = tile * 0.22;
+
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.45)";
+        ctx.shadowBlur = tile * 0.22;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = tile * 0.05;
+
+        const mineGrad = ctx.createRadialGradient(
+          cxm - tile * 0.06,
+          cym - tile * 0.08,
+          tile * 0.02,
+          cxm,
+          cym,
+          radius
+        );
+        mineGrad.addColorStop(0, colorCore);
+        mineGrad.addColorStop(0.45, colorMain);
+        mineGrad.addColorStop(1, "rgba(0,0,0,0.55)");
+
+        ctx.fillStyle = mineGrad;
+        ctx.beginPath();
+        ctx.arc(cxm, cym, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        ctx.fillStyle = colorCore;
+        ctx.beginPath();
+        ctx.arc(cxm - tile * 0.02, cym - tile * 0.04, radius * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = colorMain;
+        ctx.lineWidth = Math.max(1, tile * 0.06);
+        for (let i = 0; i < 8; i += 1) {
+          const a = (Math.PI * 2 * i) / 8;
+          const x1 = cxm + Math.cos(a) * (radius + tile * 0.02);
+          const y1 = cym + Math.sin(a) * (radius + tile * 0.02);
+          const x2 = cxm + Math.cos(a) * (radius + tile * 0.22);
+          const y2 = cym + Math.sin(a) * (radius + tile * 0.22);
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+
+        const glow = ctx.createRadialGradient(cxm, cym, radius * 0.4, cxm, cym, radius * 1.8);
+        glow.addColorStop(0, "rgba(255,255,255,0.18)");
+        glow.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(cxm, cym, radius * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawFlag(x, y, tile) {
+        const poleX = x + tile * 0.36;
+        const topY = y + tile * 0.18;
+        const bottomY = y + tile * 0.8;
+
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = tile * 0.16;
+        ctx.shadowOffsetX = tile * 0.03;
+        ctx.shadowOffsetY = tile * 0.04;
+
+        ctx.strokeStyle = "#232323";
+        ctx.lineWidth = Math.max(1, tile * 0.08);
+        ctx.beginPath();
+        ctx.moveTo(poleX, topY);
+        ctx.lineTo(poleX, bottomY);
+        ctx.stroke();
+
+        const cloth = ctx.createLinearGradient(poleX, topY, poleX + tile * 0.44, y + tile * 0.46);
+        cloth.addColorStop(0, "#ff6666");
+        cloth.addColorStop(0.55, "#d12f2f");
+        cloth.addColorStop(1, "#8f1010");
+        ctx.fillStyle = cloth;
+        ctx.beginPath();
+        ctx.moveTo(poleX + tile * 0.02, topY + tile * 0.02);
+        ctx.lineTo(poleX + tile * 0.44, y + tile * 0.34);
+        ctx.lineTo(poleX + tile * 0.02, y + tile * 0.52);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.38)";
+        ctx.lineWidth = Math.max(1, tile * 0.03);
+        ctx.beginPath();
+        ctx.moveTo(poleX + tile * 0.06, topY + tile * 0.08);
+        ctx.lineTo(poleX + tile * 0.33, y + tile * 0.33);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      function getThemeColorsForCanvas() {
+        const base = getPythonThemeBase();
+        const numberBase = getPythonNumberColors();
+        const numberColors = {};
+        for (let i = 1; i <= 8; i += 1) {
+          numberColors[i] = rgbToCss(numberBase[i]);
+        }
+
+        return {
+          bgTop: base.bg_top,
+          bgBottom: base.bg_bottom,
+          panel: base.panel,
+          panelEdge: base.panel_edge,
+          dust: base.dust,
+          accentRgb: base.accent,
+          accent2Rgb: base.accent_2,
+          warningRgb: base.warning,
+          textRgb: base.text,
+          board: rgbToCss(shadeColor(base.bg_bottom, 6)),
+          boardEdge: rgbToCss(shadeColor(base.panel_edge, -18)),
+          hidden: rgbToCss(base.tile),
+          hiddenLight: rgbToCss(shadeColor(base.tile, 14)),
+          hiddenDark: rgbToCss(shadeColor(base.tile, -22)),
+          revealed: rgbToCss(base.tile_reveal),
+          grid: rgbaToCss(shadeColor(base.panel_edge, -40), 0.58),
+          mine: rgbToCss(base.warning),
+          mineCore: rgbToCss(shadeColor(base.warning, 34)),
+          hover: rgbaToCss(base.accent, 0.55),
+          fog: rgbaToCss(shadeColor(base.bg_bottom, -8), 0.82),
+          text: rgbToCss(base.text),
+          neon: rgbaToCss(base.accent, 0.36),
+          cellOutline: "rgba(255,255,255,0.98)",
+          numberColors,
+          dualVisuals: dualRealityVisuals(),
+          quantumVisuals: quantumVisuals(),
+          riftVisuals: riftOmegaVisuals()
+        };
+      }
+
+      const backdropCache = new Map();
+
+      function cacheLimitedPut(cache, key, value, max = 12) {
+        cache.set(key, value);
+        if (cache.size <= max) {
+          return;
+        }
+        const oldest = cache.keys().next().value;
+        if (oldest !== undefined) {
+          cache.delete(oldest);
+        }
+      }
+
+      function getBackdropSurface(view, theme) {
+        const key = [
+          view.width,
+          view.height,
+          theme.bgTop.join(","),
+          theme.bgBottom.join(","),
+          theme.panel.join(","),
+          theme.panelEdge.join(","),
+          theme.dust.join(","),
+          theme.accentRgb.join(","),
+          theme.accent2Rgb.join(","),
+          theme.warningRgb.join(","),
+          theme.dualVisuals ? "D" : "-",
+          theme.quantumVisuals ? "Q" : "-",
+          theme.riftVisuals ? "R" : "-"
+        ].join("|");
+        if (backdropCache.has(key)) {
+          return backdropCache.get(key);
+        }
+
+        const surface = document.createElement("canvas");
+        surface.width = Math.max(1, view.width);
+        surface.height = Math.max(1, view.height);
+        const c2 = surface.getContext("2d");
+
+        const grad = c2.createLinearGradient(0, 0, 0, view.height);
+        grad.addColorStop(0, rgbToCss(theme.bgTop));
+        grad.addColorStop(1, rgbToCss(theme.bgBottom));
+        c2.fillStyle = grad;
+        c2.fillRect(0, 0, view.width, view.height);
+
+        for (let y = 0; y < view.height; y += 4) {
+          const alpha = (Math.floor(y / 4) % 2 === 0) ? 0.047 : 0.024;
+          c2.fillStyle = `rgba(0,0,0,${alpha.toFixed(3)})`;
+          c2.fillRect(0, y, view.width, 1);
+        }
+
+        const rng = makeRng(hashString(`BACKDROP:${key}`));
+        const speckCount = Math.floor(view.width * view.height * 0.0012);
+        for (let i = 0; i < speckCount; i += 1) {
+          const x = Math.floor(rng() * view.width);
+          const y = Math.floor(rng() * view.height);
+          const jitter = Math.floor(rng() * 25) - 12;
+          const col = shadeColor(theme.dust, jitter);
+          const alpha = 0.07 + (rng() * 0.1);
+          c2.fillStyle = rgbaToCss(col, alpha);
+          c2.fillRect(x, y, 1, 1);
+        }
+
+        if (theme.dualVisuals) {
+          for (let y = 0; y < view.height; y += 6) {
+            const useA = y % 24 === 0;
+            c2.fillStyle = rgbaToCss(useA ? theme.accentRgb : theme.accent2Rgb, useA ? 0.12 : 0.08);
+            c2.fillRect(0, y, view.width, 1);
+          }
+          for (let i = 0; i < 18; i += 1) {
+            const gx = Math.floor(rng() * Math.max(1, view.width - 120));
+            const gy = Math.floor(rng() * view.height);
+            const gw = 40 + Math.floor(rng() * 140);
+            c2.fillStyle = rgbaToCss(theme.accent2Rgb, 0.09);
+            c2.fillRect(gx, gy, gw, 2);
+          }
+        }
+
+        if (theme.quantumVisuals) {
+          for (let y = 0; y < view.height; y += 8) {
+            const col = (Math.floor(y / 8) % 2 === 0) ? theme.accentRgb : theme.accent2Rgb;
+            c2.fillStyle = rgbaToCss(col, 0.06);
+            c2.fillRect(0, y, view.width, 1);
+          }
+          for (let i = 0; i < 24; i += 1) {
+            const gx = Math.floor(rng() * Math.max(1, view.width - 120));
+            const gy = Math.floor(rng() * view.height);
+            const gw = 60 + Math.floor(rng() * 160);
+            c2.fillStyle = rgbaToCss(theme.accent2Rgb, 0.08);
+            c2.fillRect(gx, gy, gw, 2);
+          }
+        }
+
+        if (theme.riftVisuals) {
+          for (let y = 0; y < view.height; y += 7) {
+            const col = (Math.floor(y / 7) % 2 === 0) ? theme.accentRgb : theme.warningRgb;
+            c2.fillStyle = rgbaToCss(col, 0.1);
+            c2.fillRect(0, y, view.width, 1);
+          }
+          for (let i = 0; i < 26; i += 1) {
+            const sx = Math.floor(rng() * Math.max(1, view.width - 120));
+            const sy = Math.floor(rng() * view.height);
+            const sl = 50 + Math.floor(rng() * 190);
+            c2.fillStyle = rgbaToCss(theme.warningRgb, 0.11);
+            c2.fillRect(sx, sy, sl, 2);
+          }
+          c2.strokeStyle = rgbaToCss(theme.accent2Rgb, 0.14);
+          c2.lineWidth = 2;
+          c2.beginPath();
+          c2.arc(view.width / 2, view.height / 2, Math.min(view.width, view.height) * 0.25, 0, Math.PI * 2);
+          c2.stroke();
+          c2.strokeStyle = rgbaToCss(theme.warningRgb, 0.12);
+          c2.beginPath();
+          c2.arc(view.width / 2, view.height / 2, Math.min(view.width, view.height) * 0.33, 0, Math.PI * 2);
+          c2.stroke();
+        }
+
+        cacheLimitedPut(backdropCache, key, surface);
+        return surface;
+      }
+
+      function drawFrame() {
+        const view = getCanvasViewSize();
+        ctx.clearRect(0, 0, view.width, view.height);
+
+        if (app.state !== "GAME" || game.rows <= 0 || game.cols <= 0) {
+          return;
+        }
+
+        clampCamera();
+
+        const t = performance.now() * 0.001;
+        const theme = getThemeColorsForCanvas();
+        const board = getBoardPixelSize();
+        const tile = board.tile;
+
+        const boardX = -game.cameraX;
+        const boardY = -game.cameraY;
+        const boardRight = boardX + board.width;
+        const boardBottom = boardY + board.height;
+
+        const backdrop = getBackdropSurface(view, theme);
+        ctx.drawImage(backdrop, 0, 0);
+
+        const visibleX = Math.max(0, boardX);
+        const visibleY = Math.max(0, boardY);
+        const visibleRight = Math.min(view.width, boardRight);
+        const visibleBottom = Math.min(view.height, boardBottom);
+        const visibleW = visibleRight - visibleX;
+        const visibleH = visibleBottom - visibleY;
+
+        if (visibleW > 0 && visibleH > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(visibleX, visibleY, visibleW, visibleH);
+          ctx.clip();
+
+          ctx.fillStyle = theme.board;
+          ctx.fillRect(visibleX, visibleY, visibleW, visibleH);
+
+          for (let y = visibleY; y <= visibleBottom; y += 5) {
+            const alpha = (Math.floor((y - boardY) / 5) % 2 === 0) ? 0.042 : 0.018;
+            ctx.fillStyle = `rgba(0,0,0,${alpha.toFixed(3)})`;
+            ctx.fillRect(visibleX, y, visibleW, 1);
+          }
+
+          if (theme.dualVisuals) {
+            for (let x = visibleX; x <= visibleRight; x += 18) {
+              const col = (Math.floor((x - boardX) / 18) % 2 === 0) ? theme.accentRgb : theme.accent2Rgb;
+              ctx.fillStyle = rgbaToCss(col, 0.09);
+              ctx.fillRect(x, visibleY, 1, visibleH);
+            }
+          }
+
+          if (theme.quantumVisuals) {
+            for (let x = visibleX; x <= visibleRight; x += 22) {
+              const col = (Math.floor((x - boardX) / 22) % 2 === 0) ? theme.accent2Rgb : theme.accentRgb;
+              ctx.fillStyle = rgbaToCss(col, 0.08);
+              ctx.fillRect(x, visibleY, 1, visibleH);
+            }
+          }
+
+          if (theme.riftVisuals) {
+            for (let y = visibleY; y <= visibleBottom; y += 32) {
+              const alpha = (Math.floor((y - boardY) / 32) % 2 === 0) ? 0.13 : 0.08;
+              ctx.fillStyle = rgbaToCss(theme.accent2Rgb, alpha);
+              ctx.fillRect(visibleX, y, visibleW, 1);
+            }
+          }
+
+          let yLine = visibleY - (((visibleY - boardY) % tile) + tile) % tile;
+          if (yLine < visibleY) {
+            yLine += tile;
+          }
+          ctx.strokeStyle = theme.grid;
+          ctx.lineWidth = 1;
+          for (let y = yLine; y <= visibleBottom; y += tile) {
+            ctx.beginPath();
+            ctx.moveTo(visibleX, y + 0.5);
+            ctx.lineTo(visibleRight, y + 0.5);
+            ctx.stroke();
+          }
+
+          let xLine = visibleX - (((visibleX - boardX) % tile) + tile) % tile;
+          if (xLine < visibleX) {
+            xLine += tile;
+          }
+          for (let x = xLine; x <= visibleRight; x += tile) {
+            ctx.beginPath();
+            ctx.moveTo(x + 0.5, visibleY);
+            ctx.lineTo(x + 0.5, visibleBottom);
+            ctx.stroke();
+          }
+
+          ctx.restore();
+        }
+
+        ctx.strokeStyle = theme.boardEdge;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(boardX + 1, boardY + 1, board.width - 2, board.height - 2);
+
+        const cStart = clamp(Math.floor(game.cameraX / tile) - 1, 0, game.cols - 1);
+        const cEnd = clamp(Math.floor((game.cameraX + view.width) / tile) + 1, 0, game.cols - 1);
+        const rStart = clamp(Math.floor(game.cameraY / tile) - 1, 0, game.rows - 1);
+        const rEnd = clamp(Math.floor((game.cameraY + view.height) / tile) + 1, 0, game.rows - 1);
+
+        const mask = currentMineMask();
+        const nums = currentNumbers();
+
+        for (let r = rStart; r <= rEnd; r += 1) {
+          for (let c = cStart; c <= cEnd; c += 1) {
+            const i = rcToIndex(r, c);
+            const x = c * tile - game.cameraX;
+            const y = r * tile - game.cameraY;
+
+            const revealed = !!game.revealed[i];
+            const flagged = !!game.flagged[i];
+            const marked = !!game.marked[i];
+            const mine = !!mask[i];
+
+            const fogHidden = modeHas("FOG") && game.generated && !revealed && game.fogVisible[i] === 0;
+            if (fogHidden) {
+              ctx.fillStyle = theme.fog;
+              ctx.fillRect(x, y, tile, tile);
+              ctx.save();
+              ctx.globalAlpha = 0.16;
+              const pulse = 0.5 + 0.5 * Math.sin((t * 2.4) + ((i % 19) * 0.3));
+              ctx.fillStyle = `rgba(255,255,255,${(0.03 + pulse * 0.03).toFixed(3)})`;
+              ctx.fillRect(x, y, tile, tile);
+              ctx.restore();
+              ctx.strokeStyle = theme.cellOutline;
+              ctx.lineWidth = tile > 20 ? 1.32 : 1.06;
+              ctx.strokeRect(x + 0.5, y + 0.5, tile - 1, tile - 1);
+              continue;
+            }
+
+            if (!revealed) {
+              ctx.fillStyle = theme.hidden;
+              ctx.fillRect(x, y, tile, tile);
+
+              if (tile > 10) {
+                const inset = Math.max(1, Math.floor(tile * 0.08));
+                const innerW = Math.max(1, tile - (inset * 2));
+                const innerH = Math.max(1, tile - (inset * 2));
+                const topBand = Math.max(1, Math.floor(tile * 0.22));
+                const bottomBand = Math.max(1, Math.floor(tile * 0.2));
+
+                // Subtle inner highlight/shadow to add depth on hidden blocks.
+                ctx.fillStyle = "rgba(255,255,255,0.07)";
+                ctx.fillRect(x + inset, y + inset, innerW, topBand);
+                ctx.fillStyle = "rgba(0,0,0,0.12)";
+                ctx.fillRect(x + inset, y + tile - inset - bottomBand, innerW, bottomBand);
+                ctx.strokeStyle = "rgba(0,0,0,0.2)";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x + inset + 0.5, y + inset + 0.5, innerW - 1, innerH - 1);
+
+                if (tile > 14) {
+                  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+                  ctx.beginPath();
+                  ctx.moveTo(x + inset + 1, y + inset + Math.floor(innerH * 0.7));
+                  ctx.lineTo(x + inset + Math.floor(innerW * 0.7), y + inset + 1);
+                  ctx.stroke();
+                }
+              }
+
+              if (tile > 10) {
+                ctx.strokeStyle = theme.hiddenLight;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + 0.5, y + tile - 0.5);
+                ctx.lineTo(x + 0.5, y + 0.5);
+                ctx.lineTo(x + tile - 0.5, y + 0.5);
+                ctx.stroke();
+
+                ctx.strokeStyle = theme.hiddenDark;
+                ctx.beginPath();
+                ctx.moveTo(x + tile - 0.5, y + 0.5);
+                ctx.lineTo(x + tile - 0.5, y + tile - 0.5);
+                ctx.lineTo(x + 0.5, y + tile - 0.5);
+                ctx.stroke();
+              }
+
+              if (flagged) {
+                drawFlag(x, y, tile);
+              } else if (marked) {
+                ctx.fillStyle = theme.text;
+                ctx.font = `${Math.max(10, Math.floor(tile * 0.62))}px ${getComputedStyle(document.body).fontFamily}`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("?", x + tile / 2, y + tile / 2 + 1);
+              }
+
+              if (modeHas("TRAINING")) {
+                if (game.practiceSafe.has(i)) {
+                  ctx.strokeStyle = "rgba(100, 220, 150, 0.7)";
+                  ctx.lineWidth = 2;
+                  ctx.strokeRect(x + 1, y + 1, tile - 2, tile - 2);
+                } else if (game.practiceMines.has(i)) {
+                  ctx.strokeStyle = "rgba(240, 100, 100, 0.72)";
+                  ctx.lineWidth = 2;
+                  ctx.strokeRect(x + 1, y + 1, tile - 2, tile - 2);
+                }
+              }
+
+              if (game.quantumMode && !flagged && !marked) {
+                const p = game.quantumRisk[i];
+                if (p > 0.82 && tile > 15) {
+                  const flicker = 0.18 + (0.1 * (0.5 + 0.5 * Math.sin((t * 7.4) + i * 0.11)));
+                  ctx.fillStyle = `rgba(210, 60, 240, ${flicker.toFixed(3)})`;
+                  ctx.fillRect(x + 2, y + 2, tile - 4, tile - 4);
+                }
+              }
+            } else {
+              ctx.fillStyle = (mine && !game.won) ? "#8b1d1d" : theme.revealed;
+              ctx.fillRect(x, y, tile, tile);
+
+              if (tile > 10) {
+                const inset = Math.max(1, Math.floor(tile * 0.1));
+                const innerW = Math.max(1, tile - (inset * 2));
+                const innerH = Math.max(1, tile - (inset * 2));
+
+                // Pressed/sunken face for revealed cells for instant visual difference.
+                ctx.strokeStyle = "rgba(0,0,0,0.34)";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + inset + 0.5, y + tile - inset - 0.5);
+                ctx.lineTo(x + inset + 0.5, y + inset + 0.5);
+                ctx.lineTo(x + tile - inset - 0.5, y + inset + 0.5);
+                ctx.stroke();
+
+                ctx.strokeStyle = "rgba(255,255,255,0.14)";
+                ctx.beginPath();
+                ctx.moveTo(x + tile - inset - 0.5, y + inset + 0.5);
+                ctx.lineTo(x + tile - inset - 0.5, y + tile - inset - 0.5);
+                ctx.lineTo(x + inset + 0.5, y + tile - inset - 0.5);
+                ctx.stroke();
+
+                ctx.fillStyle = "rgba(255,255,255,0.035)";
+                ctx.fillRect(x + inset + 1, y + inset + 1, Math.max(1, innerW - 2), Math.max(1, Math.floor(innerH * 0.35)));
+              }
+
+              if (mine) {
+                drawMine(x, y, tile, theme.mine, theme.mineCore);
+              } else {
+                const n = nums[i];
+                if (n > 0 && shouldShowNumber(i)) {
+                  ctx.fillStyle = theme.numberColors[n] || NUMBER_COLORS[n] || theme.text;
+                  ctx.font = `${Math.max(10, Math.floor(tile * 0.58))}px ${getComputedStyle(document.body).fontFamily}`;
+                  ctx.textAlign = "center";
+                  ctx.textBaseline = "middle";
+                  ctx.shadowColor = "rgba(0,0,0,0.38)";
+                  ctx.shadowBlur = Math.max(1, tile * 0.08);
+                  ctx.shadowOffsetX = 0;
+                  ctx.shadowOffsetY = Math.max(1, tile * 0.03);
+                  ctx.fillText(String(n), x + tile / 2, y + tile / 2 + 1);
+                  ctx.shadowColor = "transparent";
+                  ctx.shadowBlur = 0;
+                }
+                if (modeHas("NO NUMBERS") && n > 0) {
+                  ctx.strokeStyle = "rgba(200, 200, 200, 0.35)";
+                  ctx.lineWidth = 1;
+                  ctx.beginPath();
+                  ctx.arc(x + tile / 2, y + tile / 2, Math.max(2, Math.floor(tile * 0.12) + n), 0, Math.PI * 2);
+                  ctx.stroke();
+                }
+              }
+            }
+
+            if (!revealed) {
+              ctx.strokeStyle = theme.cellOutline;
+              ctx.lineWidth = tile > 20 ? 1.32 : 1.06;
+              ctx.strokeRect(x + 0.5, y + 0.5, tile - 1, tile - 1);
+            }
+
+            if (i === game.hoverIndex) {
+              const hGlow = ctx.createRadialGradient(x + tile / 2, y + tile / 2, tile * 0.15, x + tile / 2, y + tile / 2, tile * 0.9);
+              hGlow.addColorStop(0, theme.neon);
+              hGlow.addColorStop(1, "rgba(255,255,255,0)");
+              ctx.fillStyle = hGlow;
+              ctx.fillRect(x - tile * 0.2, y - tile * 0.2, tile * 1.4, tile * 1.4);
+              if (!revealed) {
+                ctx.strokeStyle = theme.hover;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x + 1, y + 1, tile - 2, tile - 2);
+              }
+            }
+
+            if (game.gameOver && !game.won && flagged && !anyMineAt(i)) {
+              ctx.strokeStyle = "#ff5f5f";
+              ctx.lineWidth = Math.max(1, tile * 0.09);
+              ctx.beginPath();
+              ctx.moveTo(x + tile * 0.25, y + tile * 0.25);
+              ctx.lineTo(x + tile * 0.75, y + tile * 0.75);
+              ctx.moveTo(x + tile * 0.75, y + tile * 0.25);
+              ctx.lineTo(x + tile * 0.25, y + tile * 0.75);
+              ctx.stroke();
+            }
+          }
+        }
+
+        if (game.dualReality) {
+          ctx.save();
+          ctx.fillStyle = "rgba(0,0,0,0.52)";
+          ctx.fillRect(14, view.height - 38, 170, 24);
+          ctx.fillStyle = theme.text;
+          ctx.font = "12px Consolas, monospace";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          const label = game.activeReality === 0 ? "REALITY A" : "REALITY B";
+          ctx.fillText(`${label} | TAB to swap`, 20, view.height - 26);
+          ctx.restore();
+        }
+
+        if (data.settings.show_fps) {
+          const fps = Math.round(1000 / Math.max(1, (performance.now() - (drawFrame.lastFrame || performance.now()))));
+          drawFrame.lastFrame = performance.now();
+          ctx.fillStyle = "rgba(0, 0, 0, 0.58)";
+          ctx.fillRect(12, 12, 92, 22);
+          ctx.fillStyle = theme.text;
+          ctx.font = "12px Consolas, monospace";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`FPS: ${fps}`, 18, 23);
+        }
+      }
+
+      function requestRender() {
+        if (game.renderQueued) {
+          return;
+        }
+        game.renderQueued = true;
+        requestAnimationFrame(() => {
+          game.renderQueued = false;
+          drawFrame();
+        });
+      }
+
+      function togglePause() {
+        if (app.state !== "GAME" || game.gameOver) {
+          return;
+        }
+        game.paused = !game.paused;
+        if (game.paused) {
+          game.elapsedMs = getElapsedMs();
+          dom.pauseBanner.classList.remove("hidden");
+          setPillStatus("PAUSED", "warn");
+        } else {
+          game.startTimeMs = nowMs() - game.elapsedMs;
+          dom.pauseBanner.classList.add("hidden");
+          setPillStatus("RUNNING", "good");
+        }
+        syncSidebarInfo();
+        requestRender();
+      }
+
+      function swapDualReality() {
+        if (!game.dualReality || game.gameOver || game.paused) {
+          return;
+        }
+        game.activeReality = game.activeReality === 0 ? 1 : 0;
+        pushToast(`Reality ${game.activeReality === 0 ? "A" : "B"}`, "info", 1000);
+        requestRender();
+      }
+
+      function useHint() {
+        if (game.gameOver || game.paused) {
+          return;
+        }
+        if (game.hintCharges <= 0) {
+          pushToast("No hint charges left.", "warn");
+          return;
+        }
+        if (!game.generated) {
+          pushToast("Reveal a cell first.", "warn");
+          return;
+        }
+
+        const mask = currentMineMask();
+        let target = -1;
+        for (let i = 0; i < mask.length; i += 1) {
+          const safe = game.dualReality ? (!game.mineA[i] && !game.mineB[i]) : !mask[i];
+          if (!game.revealed[i] && !game.flagged[i] && safe) {
+            target = i;
+            break;
+          }
+        }
+        if (target < 0) {
+          pushToast("No valid hint target found.", "warn");
+          return;
+        }
+
+        game.hintCharges -= 1;
+        const [r, c] = indexToRC(target);
+        revealIndex(target, true);
+        pushToast(`Hint used at R${r + 1} C${c + 1}`, "good");
+      }
+
+      function handleGameAction(action) {
+        if (action === "restart" || action === "quick-restart") {
+          restartCurrentBoard();
+          return;
+        }
+        if (action === "pause") {
+          togglePause();
+          return;
+        }
+        if (action === "open-settings") {
+          if (!game.gameOver) {
+            game.paused = true;
+            game.elapsedMs = getElapsedMs();
+            dom.pauseBanner.classList.remove("hidden");
+          }
+          app.settingsReturnState = "GAME";
+          setState("SETTINGS_MAIN");
+          return;
+        }
+        if (action === "exit") {
+          if (data.settings.confirm_exit && !game.gameOver) {
+            game.confirmExit = true;
+            openPopup("Confirm Exit", "Leave current run and return to menu?", [
+              {
+                label: "No",
+                onClick: () => {
+                  game.confirmExit = false;
+                  closePopup();
+                }
+              },
+              {
+                label: "Yes",
+                className: "warn",
+                onClick: () => {
+                  game.confirmExit = false;
+                  closePopup();
+                  stopGameTimer();
+                  setState("MENU");
+                }
+              }
+            ]);
+          } else {
+            stopGameTimer();
+            setState("MENU");
+          }
+          return;
+        }
+        if (action === "fit") {
+          fitBoardToView();
+          return;
+        }
+        if (action === "hint") {
+          useHint();
+          return;
+        }
+        if (action === "undo") {
+          performUndo();
+          return;
+        }
+        if (action === "swap-reality") {
+          swapDualReality();
+          return;
+        }
+        if (action === "stabilizer") {
+          if (!game.quantumMode) {
+            return;
+          }
+          if (game.quantumStabilizerUsed) {
+            pushToast("Stabilizer already consumed.", "warn");
+            return;
+          }
+          game.quantumStabilizerArmed = !game.quantumStabilizerArmed;
+          pushToast(game.quantumStabilizerArmed ? "Stabilizer armed." : "Stabilizer disarmed.", "info");
+          return;
+        }
+      }
+
+      function bindGameActionButtons() {
+        document.body.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-game-action]");
+          if (!button) {
+            return;
+          }
+          const action = button.getAttribute("data-game-action");
+          handleGameAction(action || "");
+        });
+
+        dom.touchModeBtn.addEventListener("click", () => {
+          setTouchMode(!data.settings.touch_flag_mode);
+        });
+
+        if (dom.mobileHudToggle) {
+          dom.mobileHudToggle.addEventListener("click", () => {
+            setMobileHudOpen(!app.mobileHudOpen);
+            vibrateTap(8);
+          });
+        }
+
+        if (dom.mobileControls) {
+          dom.mobileControls.addEventListener("click", (event) => {
+            const btn = event.target.closest("[data-mobile-action]");
+            if (!btn) {
+              return;
+            }
+            const action = btn.getAttribute("data-mobile-action");
+            handleMobileAction(action || "");
+          });
+        }
+      }
+
+      function pointerDown(event) {
+        if (app.state !== "GAME") {
+          return;
+        }
+
+        if (event.pointerType === "mouse" && event.button === 2) {
+          const cell = getBoardCellFromCanvasPoint(event.clientX, event.clientY);
+          if (cell) {
+            toggleFlagIndex(cell.index, true);
+          }
+          return;
+        }
+
+        if (event.pointerType === "mouse" && (event.button === 1 || (event.button === 0 && game.keys.space))) {
+          game.pointer.active = true;
+          game.pointer.id = event.pointerId;
+          game.pointer.mode = "drag";
+          game.pointer.startX = event.clientX;
+          game.pointer.startY = event.clientY;
+          game.pointer.lastX = event.clientX;
+          game.pointer.lastY = event.clientY;
+          game.pointer.moved = false;
+          dom.canvas.setPointerCapture(event.pointerId);
+          return;
+        }
+
+        if (event.pointerType === "touch") {
+          game.activePointers[event.pointerId] = { clientX: event.clientX, clientY: event.clientY };
+          const touchIds = Object.keys(game.activePointers).map(Number);
+          if (touchIds.length >= 2) {
+            game.pinch.active = true;
+            const [a, b] = touchIds.slice(0, 2);
+            const pa = game.activePointers[a];
+            const pb = game.activePointers[b];
+            game.pinch.startDist = Math.hypot(pb.clientX - pa.clientX, pb.clientY - pa.clientY) || 1;
+            game.pinch.startZoom = clamp(safeFloat(data.settings.zoom, 1), 0.25, 2.4);
+            game.pinch.centerX = (pa.clientX + pb.clientX) / 2;
+            game.pinch.centerY = (pa.clientY + pb.clientY) / 2;
+            game.pointer.active = false;
+          } else {
+            game.pointer.active = true;
+            game.pointer.id = event.pointerId;
+            game.pointer.mode = "touch";
+            game.pointer.startX = event.clientX;
+            game.pointer.startY = event.clientY;
+            game.pointer.lastX = event.clientX;
+            game.pointer.lastY = event.clientY;
+            game.pointer.downAt = nowMs();
+            game.pointer.moved = false;
+            const cell = getBoardCellFromCanvasPoint(event.clientX, event.clientY);
+            game.pointer.downIndex = cell ? cell.index : -1;
+          }
+          dom.canvas.setPointerCapture(event.pointerId);
+          return;
+        }
+
+        if (event.pointerType === "mouse" && event.button === 0) {
+          const cell = getBoardCellFromCanvasPoint(event.clientX, event.clientY);
+          if (!cell) {
+            return;
+          }
+          if (event.shiftKey) {
+            chordReveal(cell.index);
+          } else {
+            revealIndex(cell.index, true);
+          }
+          syncSidebarInfo();
+          requestRender();
+        }
+      }
+
+      function pointerMove(event) {
+        if (app.state !== "GAME") {
+          return;
+        }
+
+        if (game.activePointers[event.pointerId] !== undefined) {
+          game.activePointers[event.pointerId] = { clientX: event.clientX, clientY: event.clientY };
+        }
+
+        if (game.pinch.active) {
+          const touchIds = Object.keys(game.activePointers).map(Number);
+          if (touchIds.length >= 2) {
+            const [a, b] = touchIds.slice(0, 2);
+            const pa = game.activePointers[a];
+            const pb = game.activePointers[b];
+            if (pa && pb) {
+              const dist = Math.hypot(pb.clientX - pa.clientX, pb.clientY - pa.clientY) || 1;
+              const ratio = dist / game.pinch.startDist;
+              const nextZoom = clamp(game.pinch.startZoom * ratio, 0.25, 2.4);
+              const rect = dom.canvas.getBoundingClientRect();
+              const centerX = (pa.clientX + pb.clientX) / 2 - rect.left;
+              const centerY = (pa.clientY + pb.clientY) / 2 - rect.top;
+              const oldTile = getTilePx();
+              data.settings.zoom = nextZoom;
+              const newTile = getTilePx();
+              const boardX = (game.cameraX + centerX) / oldTile;
+              const boardY = (game.cameraY + centerY) / oldTile;
+              game.cameraX = boardX * newTile - centerX;
+              game.cameraY = boardY * newTile - centerY;
+              clampCamera();
+              requestRender();
+            }
+          }
+          return;
+        }
+
+        if (game.pointer.active && game.pointer.id === event.pointerId) {
+          const dx = event.clientX - game.pointer.lastX;
+          const dy = event.clientY - game.pointer.lastY;
+          game.pointer.lastX = event.clientX;
+          game.pointer.lastY = event.clientY;
+          if (Math.hypot(event.clientX - game.pointer.startX, event.clientY - game.pointer.startY) > 8) {
+            game.pointer.moved = true;
+          }
+
+          if (game.pointer.mode === "drag" || (game.pointer.mode === "touch" && game.pointer.moved)) {
+            game.cameraX -= dx;
+            game.cameraY -= dy;
+            clampCamera();
+            requestRender();
+          }
+          return;
+        }
+
+        const cell = getBoardCellFromCanvasPoint(event.clientX, event.clientY);
+        const newHover = cell ? cell.index : -1;
+        if (newHover !== game.hoverIndex) {
+          game.hoverIndex = newHover;
+          requestRender();
+        }
+      }
+
+      function pointerUp(event) {
+        if (app.state !== "GAME") {
+          return;
+        }
+
+        delete game.activePointers[event.pointerId];
+        const touchCount = Object.keys(game.activePointers).length;
+        if (game.pinch.active) {
+          game.pinch.active = touchCount >= 2;
+          if (!game.pinch.active) {
+            saveData();
+          }
+          return;
+        }
+
+        if (!game.pointer.active || game.pointer.id !== event.pointerId) {
+          return;
+        }
+
+        const mode = game.pointer.mode;
+        const moved = game.pointer.moved;
+        const cell = getBoardCellFromCanvasPoint(event.clientX, event.clientY);
+
+        if (mode === "touch" && !moved && cell) {
+          const now = nowMs();
+          const heldMs = now - game.pointer.downAt;
+          const isDouble = (now - game.lastTapAt) < 280 && cell.index === game.lastTapIndex;
+          game.lastTapAt = now;
+          game.lastTapIndex = cell.index;
+
+          if (isDouble) {
+            chordReveal(cell.index);
+          } else if (heldMs >= 100) {
+            toggleFlagIndex(cell.index, true);
+          } else if (data.settings.touch_flag_mode) {
+            toggleFlagIndex(cell.index, true);
+          } else {
+            revealIndex(cell.index, true);
+          }
+          vibrateTap(isDouble ? 14 : 8);
+          syncSidebarInfo();
+          requestRender();
+        }
+
+        game.pointer.active = false;
+        game.pointer.id = -1;
+      }
+
+      function handleWheel(event) {
+        if (app.state !== "GAME") {
+          return;
+        }
+        event.preventDefault();
+
+        const oldTile = getTilePx();
+        const oldZoom = clamp(safeFloat(data.settings.zoom, 1), 0.25, 2.4);
+        const nextZoom = clamp(oldZoom * (event.deltaY < 0 ? 1.1 : 0.9), 0.25, 2.4);
+
+        if (Math.abs(nextZoom - oldZoom) < 0.0001) {
+          return;
+        }
+
+        const rect = dom.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const boardX = (game.cameraX + x) / oldTile;
+        const boardY = (game.cameraY + y) / oldTile;
+
+        data.settings.zoom = nextZoom;
+        saveData();
+
+        const newTile = getTilePx();
+        game.cameraX = boardX * newTile - x;
+        game.cameraY = boardY * newTile - y;
+
+        clampCamera();
+        requestRender();
+      }
+
+      function bindCanvasEvents() {
+        dom.canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+        dom.canvas.addEventListener("wheel", handleWheel, { passive: false });
+        dom.canvas.addEventListener("pointerdown", pointerDown);
+        dom.canvas.addEventListener("pointermove", pointerMove);
+        dom.canvas.addEventListener("pointerup", pointerUp);
+        dom.canvas.addEventListener("pointercancel", pointerUp);
+      }
+
+      function handleKeyboard(event) {
+        // track pressed keys for shortcut detection
+        const _k = (event.key || '').toLowerCase();
+        if (event.type === 'keydown') {
+          pressedKeys.add(_k);
+        } else {
+          pressedKeys.delete(_k);
+        }
+
+        // Debug toggle: CTRL + D + E only in MENU
+        if (event.type === 'keydown' && app.state === 'MENU') {
+          const ctrl = event.ctrlKey || pressedKeys.has('control') || pressedKeys.has('ctrl');
+          if (ctrl && _k === 'e' && pressedKeys.has('d')) {
+            setDebugMode(!app.debugMode);
+            event.preventDefault();
+            return;
+          }
+        }
+        if (event.code === "Space") {
+          game.keys.space = event.type === "keydown";
+          if (event.type === "keydown" && app.state === "GAME" && !game.gameOver) {
+            const rect = dom.canvas.getBoundingClientRect();
+            const cxm = rect.left + rect.width / 2;
+            const cym = rect.top + rect.height / 2;
+            const cell = getBoardCellFromCanvasPoint(cxm, cym);
+            if (cell) {
+              if (game.revealed[cell.index] && !modeHas("NO FLAGS")) {
+                chordReveal(cell.index);
+              } else {
+                revealIndex(cell.index, true);
+              }
+              syncSidebarInfo();
+              requestRender();
+            }
+          }
+        }
+
+        if (event.type !== "keydown") {
+          return;
+        }
+
+        if (app.state !== "GAME") {
+          if (event.key === "Escape") {
+            if (app.state.startsWith("SETTINGS")) {
+              handleMenuAction("back-from-settings", "");
+            } else if (app.state === "HOW_TO") {
+              handleMenuAction("back-from-howto", "");
+            } else if (app.state === "PLAY") {
+              setState("MENU");
+            }
+          }
+          return;
+        }
+
+        if (event.key === "p" || event.key === "P" || event.key === "Pause") {
+          event.preventDefault();
+          togglePause();
+          return;
+        }
+
+        if (event.key === "h" || event.key === "H") {
+          app.helpReturnState = "GAME";
+          app.howtoIndex = 0;
+          if (!game.gameOver) {
+            game.paused = true;
+            game.elapsedMs = getElapsedMs();
+            dom.pauseBanner.classList.remove("hidden");
+          }
+          setState("HOW_TO");
+          return;
+        }
+
+        if (event.key === "o" || event.key === "O") {
+          if (!game.gameOver) {
+            game.paused = true;
+            game.elapsedMs = getElapsedMs();
+            dom.pauseBanner.classList.remove("hidden");
+          }
+          app.settingsReturnState = "GAME";
+          setState("SETTINGS_MAIN");
+          return;
+        }
+
+        if ((event.key === "Escape" || event.key === "Backspace") && !game.gameOver) {
+          handleGameAction("exit");
+          return;
+        }
+
+        if (event.key === "Tab") {
+          event.preventDefault();
+          swapDualReality();
+          return;
+        }
+
+        if (event.key === "e" || event.key === "E") {
+          handleGameAction("stabilizer");
+          return;
+        }
+
+        if (event.key === "f" || event.key === "F") {
+          if (game.hoverIndex >= 0) {
+            toggleFlagIndex(game.hoverIndex, true);
+          }
+          return;
+        }
+
+        if (event.key === "q" || event.key === "Q") {
+          if (game.hoverIndex >= 0 && !game.revealed[game.hoverIndex]) {
+            game.marked[game.hoverIndex] = game.marked[game.hoverIndex] ? 0 : 1;
+            if (game.marked[game.hoverIndex]) {
+              data.runtime.marks_placed = (data.runtime.marks_placed || 0) + 1;
+            }
+            syncSidebarInfo();
+            requestRender();
+          }
+          return;
+        }
+
+        if (event.key === "r" || event.key === "R") {
+          restartCurrentBoard();
+          return;
+        }
+
+        const pan = getTilePx() * 2;
+        if (event.key === "w" || event.key === "W" || event.key === "ArrowUp") {
+          game.cameraY -= pan;
+          clampCamera();
+          requestRender();
+          return;
+        }
+        if (event.key === "s" || event.key === "S" || event.key === "ArrowDown") {
+          game.cameraY += pan;
+          clampCamera();
+          requestRender();
+          return;
+        }
+        if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") {
+          game.cameraX -= pan;
+          clampCamera();
+          requestRender();
+          return;
+        }
+        if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") {
+          game.cameraX += pan;
+          clampCamera();
+          requestRender();
+          return;
+        }
+      }
+
+      function bindGlobalEvents() {
+        const onViewportChange = () => {
+          applyMobileUiMode();
+          resizeCanvas();
+        };
+
+        window.addEventListener("resize", onViewportChange);
+        window.addEventListener("orientationchange", onViewportChange);
+        window.addEventListener("keydown", handleKeyboard);
+        window.addEventListener("keyup", handleKeyboard);
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden && data.settings.mute_on_minimize) {
+            game.musicMutedByMinimize = true;
+            setPillStatus("MINIMIZED", "warn");
+          } else if (!document.hidden && game.musicMutedByMinimize) {
+            game.musicMutedByMinimize = false;
+            if (app.state === "GAME") {
+              setPillStatus("RUNNING", "good");
+            } else {
+              setPillStatus("READY", "info");
+            }
+          }
+        });
+      }
+
+      function bootSequence() {
+        setState("LOADING");
+        setPillStatus("BOOTING", "warn");
+
+        app.loading = {
+          startedAt: nowMs(),
+          durationMs: 900,
+          progress: 0
+        };
+
+        const loop = () => {
+          if (app.state !== "LOADING" || !app.loading) {
+            return;
+          }
+          const elapsed = nowMs() - app.loading.startedAt;
+          app.loading.progress = clamp(elapsed / app.loading.durationMs, 0, 1);
+          const fill = document.getElementById("loadingFill");
+          if (fill) {
+            fill.style.width = `${Math.round(app.loading.progress * 100)}%`;
+          }
+          if (app.loading.progress >= 1) {
+            app.loading = null;
+            app.bootDone = true;
+            setState("MENU");
+            setPillStatus("READY", "info");
+            updateHeaderBoardInfo();
+            const seen = localStorage.getItem(VERSION_SEEN_KEY) || "0";
+            if (integrityFailedOnLoad) {
+              openPopup(
+                "Data Reset",
+                "Saved data integrity check failed, so progress was reset to defaults.",
+                [{ label: "OK", className: "primary", onClick: closePopup }]
+              );
+              integrityFailedOnLoad = false;
+            } else if (seen !== APP_VERSION) {
+              openPopup(
+                `Update ${APP_VERSION}`,
+                "v1.1.02 changes:\n• HAC removed for uninterrupted play.\n• Start flow simplified: click game mode -> difficulty opens immediately.\n• Difficulty selection still starts runs instantly.\n• Removed the extra 'CONTINUE TO DIFFICULTY' step.\n\nNote: HAC may return in the future, but only as a heavily optimized version designed to avoid false-flagging legitimate players.",
+                [{ label: "OK", className: "primary", onClick: () => { localStorage.setItem(VERSION_SEEN_KEY, APP_VERSION); closePopup(); } }]
+              );
+            }
+            return;
+          }
+          requestAnimationFrame(loop);
+        };
+
+        requestAnimationFrame(loop);
+      }
+
+      function initTouchButtonLabel() {
+        setTouchMode(Boolean(data.settings.touch_flag_mode), false);
+      }
+
+      function init() {
+        applyMobileUiMode();
+        if (app.isMobileUi) {
+          let changed = false;
+          if (safeFloat(data.settings.tile_size, 22) < 24) {
+            data.settings.tile_size = 24;
+            changed = true;
+          }
+          if (safeFloat(data.settings.zoom, 1) < 0.85) {
+            data.settings.zoom = 0.85;
+            changed = true;
+          }
+          if (changed) {
+            saveData();
+          }
+        }
+
+        applyTheme();
+        bindMenuEvents();
+        bindPopupEvents();
+        bindGameActionButtons();
+        bindCanvasEvents();
+        bindGlobalEvents();
+        initTouchButtonLabel();
+        resizeCanvas();
+        updateHeaderBoardInfo();
+        syncSidebarInfo();
+        bootSequence();
+      }
+
+      init();
+    })();
+  </script>
 </body>
 </html>
+
