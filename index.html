@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
   <title>Minesweeper Plus Hybrid</title>
   <style>
+    /* ---------- root variables ---------- */
+    /* theme colors and fonts */
     :root {
       --bg-a: rgb(22, 20, 18);
       --bg-b: rgb(10, 9, 8);
@@ -28,6 +30,11 @@
 
     * {
       box-sizing: border-box;
+    }
+
+    /* ---------- utility classes ---------- */
+    .hidden {
+      display: none !important;
     }
 
     html,
@@ -458,6 +465,13 @@
       gap: 6px;
     }
 
+    /* specific panels */
+    #sideAchievements {
+      display: grid;
+      gap: 6px;
+      font-size: 0.74rem;
+    }
+
     .kv {
       display: flex;
       justify-content: space-between;
@@ -491,6 +505,10 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    button[data-game-action="exit"] {
+      width: max-content;
     }
 
     #canvasWrap {
@@ -697,6 +715,7 @@
       }
     }
 
+    /* ---------- responsive layout rules ---------- */
     @media (max-width: 1120px) {
       #gameLayer {
         grid-template-columns: 1fr;
@@ -836,7 +855,7 @@
 </head>
 <body>
   <div id="app">
-    <header id="globalHeader" class="panel">
+    <header id="globalHeader" class="panel" role="banner">
       <div>
         <h1 id="brandTitle">Minesweeper Plus</h1>
         <p id="brandSub">Hybrid command board interface for desktop and touch devices.</p>
@@ -850,7 +869,7 @@
       </div>
     </header>
 
-    <main id="mainRoot">
+    <main id="mainRoot" role="main">
       <section id="menuLayer" class="layer">
         <div id="menuShell" class="panel">
           <div id="menuTopBar">
@@ -862,7 +881,7 @@
       </section>
 
       <section id="gameLayer" class="layer hidden">
-        <aside id="gameSidebar" class="panel">
+        <aside id="gameSidebar" class="panel" role="complementary" aria-label="game information">
           <div class="info-box">
             <h3>Run Status</h3>
             <div class="kv"><span>Special Mode</span><strong id="sideSpecial">CLASSIC</strong></div>
@@ -903,7 +922,7 @@
 
           <div class="info-box" id="sideAchievementsBox">
             <h3>Recent</h3>
-            <div id="sideAchievements" style="display:grid;gap:6px;font-size:0.74rem;"></div>
+            <div id="sideAchievements"></div>
           </div>
         </aside>
 
@@ -918,7 +937,7 @@
             <div id="gameMeta">READY</div>
             <button id="touchModeBtn" class="btn slim">TOUCH: REVEAL</button>
           </div>
-          <div id="canvasWrap">
+          <div id="canvasWrap" aria-label="game board">
             <canvas id="boardCanvas"></canvas>
             <div id="pauseBanner" class="hidden">Paused</div>
           </div>
@@ -942,19 +961,20 @@
     </div>
   </div>
 
-  <div id="popupBackdrop" class="hidden">
-    <div id="popupCard" class="panel">
+  <div id="popupBackdrop" class="hidden" aria-hidden="true">
+    <div id="popupCard" class="panel" role="dialog" aria-modal="true">
       <h3 id="popupTitle">Popup</h3>
       <div id="popupBody"></div>
       <div id="popupActions"></div>
     </div>
   </div>
 
-  <div id="toastStack"></div>
+  <div id="toastStack" aria-live="polite" role="status"></div>
 
   <script>
     (() => {
       "use strict";
+      // ---------- constants ----------
 
       const DIFFICULTIES = {
         EASY: { rows: 9, cols: 9, mines: 10 },
@@ -1041,7 +1061,7 @@
       const BATTLEPASS_SEASON_NAME = "RIFT ERA";
 
       const STORAGE_KEY = "minesweeper_plus_web_phase2";
-      const APP_VERSION = "1.2";
+      const APP_VERSION = "1.2.2";
       const VERSION_SEEN_KEY = "minesweeper_plus_web_phase2_seen_version";
       const INTEGRITY_SALT = "msp2_v1_x7k9";
       const MAX_CELL_COUNT = 450000;
@@ -1122,6 +1142,23 @@
 
       const PATCH_NOTES = [
         {
+          version: "1.2.2",
+          title: "UI Refinements",
+          bullets: [
+            "Fixed: exit button no longer huge as fuck in fullscreen mode"
+          ]
+        },
+        {
+          version: "1.2.1",
+          title: "Performance & Quality",
+          bullets: [
+            "Added low-detail renderer path for zoomed-out boards to restore frame rate.",
+            "Optimized tile rendering: skipped decorative overlays, batched grid lines, reduced draw calls in low-detail mode.",
+            "Fixed performance slowdowns on large boards (>10k tiles) by skipping shadow/edge rendering.",
+            "Improved accessibility: ARIA roles/labels for header, main, sidebar, canvas, popups and toasts."
+          ]
+        },
+        {
           version: "1.2",
           title: "Save & Mobile UX",
           bullets: [
@@ -1171,6 +1208,7 @@
         { id: "OMEGA", label: "OMEGA +50%", mult: 1.5 }
       ];
 
+      // ---------- DOM element references ----------
       const dom = {
         root: document.documentElement,
         body: document.body,
@@ -1292,6 +1330,12 @@
         }
       };
 
+      /**
+       * Deep-clone a JSON-serializable object, falling back to
+       * {@link structuredClone} when available.
+       * @param {any} obj
+       * @returns {any}
+       */
       function cloneData(obj) {
         if (typeof structuredClone === "function") {
           return structuredClone(obj);
@@ -1299,6 +1343,10 @@
         return JSON.parse(JSON.stringify(obj));
       }
 
+      /**
+       * Recursively merge two objects, giving precedence to `incoming`.
+       * Arrays are replaced, not concatenated; plain objects are merged.
+       */
       function mergeObjects(base, incoming) {
         const out = Array.isArray(base) ? [] : {};
         const keys = new Set([...Object.keys(base || {}), ...Object.keys(incoming || {})]);
@@ -1316,6 +1364,13 @@
         return out;
       }
 
+      /**
+       * Compute a lightweight integrity hash used by localStorage for tamper
+       * detection.  Only includes a handful of “critical” counters so the value
+       * changes on meaningful progress.
+       * @param {object} obj game/settings data object
+       * @returns {string} base‑36 hash
+       */
       function computeIntegrityHash(obj) {
         const critical = {
           wins: obj.runtime?.wins ?? 0,
@@ -1367,6 +1422,8 @@
       }
 
       // ---------- save/restore game state ----------
+      // serialized copy goes into data.runtime.savedGame
+
       // typed-array/set-aware serializer so JSON round-trip survives a page
       // reload.  We store the serialized copy inside data.runtime.savedGame.
       function serializeGame(g) {
@@ -1591,6 +1648,14 @@
         lastFlagAt: 0
       };
 
+      // ---------- helper functions ----------
+      /**
+       * Clamp a number between low and high bounds.
+       * @param {number} v
+       * @param {number} lo
+       * @param {number} hi
+       * @returns {number}
+       */
       function clamp(v, lo, hi) {
         return Math.max(lo, Math.min(hi, v));
       }
@@ -1930,6 +1995,7 @@
           dom.popupActions.appendChild(btn);
         }
         dom.popupBackdrop.classList.remove("hidden");
+        dom.popupBackdrop.setAttribute("aria-hidden", "false");
       }
 
       function setDebugMode(enabled) {
@@ -1948,6 +2014,7 @@
 
       function closePopup() {
         dom.popupBackdrop.classList.add("hidden");
+        dom.popupBackdrop.setAttribute("aria-hidden", "true");
       }
 
       function applyTheme() {
@@ -4731,6 +4798,9 @@
       function drawFrame() {
         const view = getCanvasViewSize();
         ctx.clearRect(0, 0, view.width, view.height);
+        // when zoomed out on very large boards the number of cells drawn
+        // explodes.  `lowDetail` enables a fast path that skips expensive
+        // shading, gradients, lines and text to keep framerate acceptable.
 
         if (app.state !== "GAME" || game.rows <= 0 || game.cols <= 0) {
           return;
@@ -4742,6 +4812,14 @@
         const theme = getThemeColorsForCanvas();
         const board = getBoardPixelSize();
         const tile = board.tile;
+        const lowDetail = tile < 8; // skip expensive details when cells are very small
+        // precompute alternate colours for low-detail checkerboard
+        let hiddenAlt, revealedAlt;
+        if (lowDetail) {
+          // small shade difference to break up the brown mass
+          hiddenAlt = shadeColor(theme.hidden, -6);
+          revealedAlt = shadeColor(theme.revealed, -6);
+        }
 
         const boardX = -game.cameraX;
         const boardY = -game.cameraY;
@@ -4773,51 +4851,50 @@
             ctx.fillRect(visibleX, y, visibleW, 1);
           }
 
-          if (theme.dualVisuals) {
-            for (let x = visibleX; x <= visibleRight; x += 18) {
-              const col = (Math.floor((x - boardX) / 18) % 2 === 0) ? theme.accentRgb : theme.accent2Rgb;
-              ctx.fillStyle = rgbaToCss(col, 0.09);
-              ctx.fillRect(x, visibleY, 1, visibleH);
+          if (!lowDetail) {
+            if (theme.dualVisuals) {
+              for (let x = visibleX; x <= visibleRight; x += 18) {
+                const col = (Math.floor((x - boardX) / 18) % 2 === 0) ? theme.accentRgb : theme.accent2Rgb;
+                ctx.fillStyle = rgbaToCss(col, 0.09);
+                ctx.fillRect(x, visibleY, 1, visibleH);
+              }
             }
-          }
 
-          if (theme.quantumVisuals) {
-            for (let x = visibleX; x <= visibleRight; x += 22) {
-              const col = (Math.floor((x - boardX) / 22) % 2 === 0) ? theme.accent2Rgb : theme.accentRgb;
-              ctx.fillStyle = rgbaToCss(col, 0.08);
-              ctx.fillRect(x, visibleY, 1, visibleH);
+            if (theme.quantumVisuals) {
+              for (let x = visibleX; x <= visibleRight; x += 22) {
+                const col = (Math.floor((x - boardX) / 22) % 2 === 0) ? theme.accent2Rgb : theme.accentRgb;
+                ctx.fillStyle = rgbaToCss(col, 0.08);
+                ctx.fillRect(x, visibleY, 1, visibleH);
+              }
             }
-          }
 
-          if (theme.riftVisuals) {
-            for (let y = visibleY; y <= visibleBottom; y += 32) {
-              const alpha = (Math.floor((y - boardY) / 32) % 2 === 0) ? 0.13 : 0.08;
-              ctx.fillStyle = rgbaToCss(theme.accent2Rgb, alpha);
-              ctx.fillRect(visibleX, y, visibleW, 1);
+            if (theme.riftVisuals) {
+              for (let y = visibleY; y <= visibleBottom; y += 32) {
+                const alpha = (Math.floor((y - boardY) / 32) % 2 === 0) ? 0.13 : 0.08;
+                ctx.fillStyle = rgbaToCss(theme.accent2Rgb, alpha);
+                ctx.fillRect(visibleX, y, visibleW, 1);
+              }
             }
-          }
 
-          let yLine = visibleY - (((visibleY - boardY) % tile) + tile) % tile;
-          if (yLine < visibleY) {
-            yLine += tile;
-          }
-          ctx.strokeStyle = theme.grid;
-          ctx.lineWidth = 1;
-          for (let y = yLine; y <= visibleBottom; y += tile) {
+            let yLine = visibleY - (((visibleY - boardY) % tile) + tile) % tile;
+            if (yLine < visibleY) {
+              yLine += tile;
+            }
+            ctx.strokeStyle = theme.grid;
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(visibleX, y + 0.5);
-            ctx.lineTo(visibleRight, y + 0.5);
-            ctx.stroke();
-          }
-
-          let xLine = visibleX - (((visibleX - boardX) % tile) + tile) % tile;
-          if (xLine < visibleX) {
-            xLine += tile;
-          }
-          for (let x = xLine; x <= visibleRight; x += tile) {
-            ctx.beginPath();
-            ctx.moveTo(x + 0.5, visibleY);
-            ctx.lineTo(x + 0.5, visibleBottom);
+            for (let y = yLine; y <= visibleBottom; y += tile) {
+              ctx.moveTo(visibleX, y + 0.5);
+              ctx.lineTo(visibleRight, y + 0.5);
+            }
+            let xLine = visibleX - (((visibleX - boardX) % tile) + tile) % tile;
+            if (xLine < visibleX) {
+              xLine += tile;
+            }
+            for (let x = xLine; x <= visibleRight; x += tile) {
+              ctx.moveTo(x + 0.5, visibleY);
+              ctx.lineTo(x + 0.5, visibleBottom);
+            }
             ctx.stroke();
           }
 
@@ -4846,8 +4923,30 @@
             const flagged = !!game.flagged[i];
             const marked = !!game.marked[i];
             const mine = !!mask[i];
+            const parity = ((r + c) & 1) === 0;
 
             const fogHidden = modeHas("FOG") && game.generated && !revealed && game.fogVisible[i] === 0;
+
+            if (lowDetail) {
+              // draw simpler checkerboard cells when zoomed far out to reduce CPU
+              if (revealed) {
+                ctx.fillStyle = parity ? theme.revealed : revealedAlt;
+              } else {
+                ctx.fillStyle = parity ? theme.hidden : hiddenAlt;
+              }
+              ctx.fillRect(x, y, tile, tile);
+              if (flagged) {
+                drawFlag(x, y, tile);
+              } else if (marked) {
+                ctx.fillStyle = theme.text;
+                ctx.font = `${Math.max(6, Math.floor(tile * 0.5))}px ${getComputedStyle(document.body).fontFamily}`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("?", x + tile / 2, y + tile / 2 + 1);
+              }
+              continue;
+            }
+
             if (fogHidden) {
               ctx.fillStyle = theme.fog;
               ctx.fillRect(x, y, tile, tile);
@@ -5244,6 +5343,7 @@
           handleGameAction(action || "");
         });
 
+        // ---------- UI & input bindings ----------
         dom.touchModeBtn.addEventListener("click", () => {
           setTouchMode(!data.settings.touch_flag_mode);
         });
@@ -5716,9 +5816,17 @@
               );
               integrityFailedOnLoad = false;
             } else if (seen !== APP_VERSION) {
+              // look up notes for this version and build a bullet list
+              const notes = PATCH_NOTES.find(p => p.version === APP_VERSION);
+              let body;
+              if (notes) {
+                body = notes.bullets.map(b => `• ${b}`).join("\n");
+              } else {
+                body = `Update ${APP_VERSION} installed.`;
+              }
               openPopup(
                 `Update ${APP_VERSION}`,
-                "v1.2 changes:\n• Added a SAVE button (shown on PC+mobile) for Expert+, Nightmare and Bosnia runs.\n• Saved games can be resumed when you return.\n• Mobile +/- zoom buttons removed – pinch-to-zoom now works everywhere.\n\nEnjoy the new persistence feature and happy digging!",
+                body,
                 [{ label: "OK", className: "primary", onClick: () => { localStorage.setItem(VERSION_SEEN_KEY, APP_VERSION); closePopup(); } }]
               );
             }
@@ -5764,9 +5872,9 @@
         bootSequence();
       }
 
-      init();
+      // start when the document is ready; script already lives at the end
+      window.addEventListener('DOMContentLoaded', init);
     })();
   </script>
 </body>
 </html>
-
